@@ -1,7 +1,8 @@
 (ns vrac.core
   (:require [clojure.spec.alpha :as s]
             [vrac.component :as vc]
-            [vrac.util :refer [map-vals tag-id-class]]))
+            [vrac.util :refer [map-vals tag-id-class]])
+  #?(:cljs (:require-macros vrac.core)))
 
 ;; A spec for the vrac components.
 (s/def ::component
