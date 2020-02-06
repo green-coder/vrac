@@ -2,6 +2,10 @@
 
 > Declarative html template library from the future.
 
+## Status
+
+Vrac is still a work in progress, its API is likely to change often.
+
 ## Introduction
 
 Vrac is a Clojure(Script) library for creating front end applications in a truly declarative and expressive way.
@@ -14,8 +18,7 @@ Vrac embraces this mix while keeping its users out of the mud by letting them
 
 ```clojure
 (ns coscup-demo.core
-  #?(:clj (:require [vrac.core :as v :refer [defc]])
-     :cljs (:require [vrac.core :as v :refer-macros [defc]])))
+  (:require [vrac.core :as v :refer [defc]]))
 
 ;; Define some components
 
@@ -82,10 +85,6 @@ As of today:
 - and the html is rendered via [React](https://reactjs.org/).
 
 However, the Vrac components are not limited or coupled to those libraries.
-
-## Status
-
-Vrac is still a work in progress, its API is likely to change often.
 
 ## Getting started
 
