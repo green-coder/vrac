@@ -1,4 +1,5 @@
-(ns vrac.event)
+(ns vrac.event
+  (:require [vrac.util :as vu]))
 
 (defn interceptors->fns
   "Returns a vector of the functions from the interceptors queued in the right order."
@@ -19,18 +20,18 @@
 (defn effects-processor
   "Returns a function that will process effects via the effect handlers
    registered in type->effect-handlers."
-  [type->effect-handlers]
+  [type->effect-handler]
   (fn process-effects! [context]
     (doseq [[type & values] (:effects context)]
-      (let [handler (type->effect-handlers type)]
+      (let [handler (type->effect-handler type)]
         (apply handler values)))))
 
 (defn event-dispatcher
   "Routes an event to the right handler, process its context through a chain of function,
    then process the corresponding effects."
-  [event-type->interceptors effect-type->effect-handlers]
-  (let [event-type->fns (into {} (map (juxt identity interceptors->fns)) event-type->interceptors)
-        process-effects! (effects-processor effect-type->effect-handlers)]
+  [event-type->interceptors effect-type->effect-handler]
+  (let [event-type->fns (vu/map-vals event-type->interceptors interceptors->fns)
+        process-effects! (effects-processor effect-type->effect-handler)]
     (fn dispatch-event! [event]
       (let [event-type (first event)
             fns (event-type->fns event-type)
@@ -57,6 +58,5 @@
 ;; Some common effect handlers
 
 (defn db-effect-handler [db-atom]
-  {:effect-type :db
-   :handler (fn [value]
-              (reset! db-atom value))})
+  (fn [value]
+    (reset! db-atom value)))
