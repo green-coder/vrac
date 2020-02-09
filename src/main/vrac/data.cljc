@@ -116,7 +116,7 @@
    returns val otherwise."
   [db val]
   (cond->> val
-           (ident? val) (get-in db)))
+    (ident? val) (get-in db)))
 
 ;; Beware! Does not prevent infinite loops.
 ;;
@@ -129,3 +129,23 @@
 ;; denormalize it according to their needs.
 (defn denormalize-entity [db entity]
   (clojure.walk/prewalk (partial deref-ident db) entity))
+
+(defn resolve-query
+  "Resolves a simple EQL query on a normalized db.
+   The query param is expected to be a vector."
+  [db val query]
+  (when-some [val (deref-ident db val)]
+    (into {}
+          (map (fn [query-elm]
+                 (cond
+                   (keyword? query-elm) [query-elm (query-elm val)]
+                   (map? query-elm) (let [[k v] (first query-elm)
+                                          val (k val)]
+                                      [k (if (and (not (ident? val))
+                                                  (coll? val))
+                                           (into (empty val)
+                                                 (map (fn [val-elm]
+                                                        (resolve-query db val-elm v)))
+                                                 val)
+                                           (resolve-query db val v))]))))
+          query)))

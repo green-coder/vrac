@@ -143,9 +143,9 @@
 
     {:user/id {1 #:user{:id 1
                         :name "Johanna"
-                        :known-for ^:ident [:tag/id 1]
-                        :belongings [^:ident [:item/id 1]
-                                     ^:ident [:item/id 2]]}}
+                        :known-for (vd/ident :tag/id 1)
+                        :belongings [(vd/ident :item/id 1)
+                                     (vd/ident :item/id 2)]}}
      :item/id {1 #:item{:id 1
                         :name "MacBook Air"}
                2 #:item{:id 2
@@ -161,3 +161,55 @@
                               :name "MacBook Air"}
                        #:item{:id 2
                               :name "Umbrella"}]}))
+
+(deftest resolve-query-test
+  (let [db {:user/id {1 #:user{:id 1
+                               :name "Lania"
+                               :bff (vd/ident :user/id 2)
+                               :friends [(vd/ident :user/id 2)
+                                         (vd/ident :user/id 3)]}
+                      2 #:user{:id 2
+                               :name "Nelson"
+                               :bff (vd/ident :user/id 1)
+                               :friends [nil
+                                         (vd/ident :user/id 3)]}
+                      3 #:user{:id 3
+                               :name "Klonso"
+                               :bff nil
+                               ; Note: Friends are in a set, this time.
+                               :friends #{(vd/ident :user/id 1)
+                                          (vd/ident :user/id 2)
+                                          (vd/ident :user/id 3)}}}}]
+    (are [val query result]
+      (= (vd/resolve-query db val query) result)
+
+      (vd/ident :user/id 1)
+      [:user/name
+       :user/bff]
+      #:user{:name "Lania"
+             :bff (vd/ident :user/id 2)}
+
+      (vd/ident :user/id 1)
+      [:user/name
+       {:user/bff [:user/name]}]
+      #:user{:name "Lania"
+             :bff {:user/name "Nelson"}}
+
+      (vd/ident :user/id 1)
+      [:user/name
+       {:user/bff [:user/name
+                   {:user/friends [:user/name]}]}]
+      #:user{:name "Lania"
+             :bff #:user{:name "Nelson"
+                         :friends [nil
+                                   #:user{:name "Klonso"}]}}
+
+      (vd/ident :user/id 3)
+      [:user/name
+       :user/bff
+       {:user/friends [:user/name]}]
+      #:user{:name "Klonso"
+             :bff nil
+             :friends #{#:user{:name "Lania"}
+                        #:user{:name "Nelson"}
+                        #:user{:name "Klonso"}}})))
