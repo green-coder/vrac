@@ -213,3 +213,64 @@
              :friends #{#:user{:name "Lania"}
                         #:user{:name "Nelson"}
                         #:user{:name "Klonso"}}})))
+
+(deftest apply-diff-test
+  (are [data diff result]
+    (= (vd/apply-diff data diff) result)
+
+    "Hello"
+    "Bonjour"
+    "Bonjour"
+
+    {:a 1}
+    {}
+    {:a 1}
+
+    [:a :b]
+    {}
+    [:a :b]
+
+    {:id 7
+     :name "Alan"
+     :enemy "Grokk"}
+    {:assoc {:age 35
+             :friend "Binyl"}
+     :update {:name "Alan Laan"}
+     :dissoc [:enemy]}
+    {:id 7
+     :name "Alan Laan"
+     :age 35
+     :friend "Binyl"}
+
+    {:stuffs [{:name "Social media"}
+              {:name "Candies"}
+              {:name "Switch"
+               :price 200
+               :quantity 0}
+              {:name "BoTW"
+               :multiplayer? false
+               :awesome? true}
+              {:name "Paperboy"
+               :price 30
+               :quantity 5}]}
+    {:update {:stuffs {:assoc [[2 {:name "Nintendo Switch"
+                                   :price 199
+                                   :quantity 1}]]
+                       :update [[3 {:assoc {:name "Breath of the Wild"
+                                            :price 60
+                                            :quantity 1}
+                                    :dissoc [:multiplayer?]}]]
+                       :remsert [[false 0 2]
+                                 [true 0 [{:name "Sleep"
+                                           :price nil}
+                                          {:name "Family"
+                                           :price nil}]]
+                                 [false 4 1]
+                                 [true 4 [{:name "Mario Kart Deluxe"
+                                           :price 50
+                                           :quantity 1}]]]}}}
+    {:stuffs [{:name "Sleep", :price nil}
+              {:name "Family", :price nil}
+              {:name "Nintendo Switch", :price 199, :quantity 1}
+              {:name "Breath of the Wild", :awesome? true, :price 60, :quantity 1}
+              {:name "Mario Kart Deluxe", :price 50, :quantity 1}]}))

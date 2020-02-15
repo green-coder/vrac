@@ -149,3 +149,39 @@
                                                  val)
                                            (resolve-query db val v))]))))
           query)))
+
+(defn apply-diff
+  "Applies the change specified in the diff to data.
+
+   When data is:
+   - a map, diff has the following format:
+     ```
+     {:assoc {key0 val0, ...}
+      :update {key0 diff0, ...}
+      :dissoc [key0 ...]}
+     ```
+     No overlap is expected between the keys in :assoc, :update and :dissoc.
+   - a set, diff has the following format:
+     ```
+     {:assoc [key0 ...]}
+      :dissoc [key0 ...]}
+     ```
+     No overlap is expected between the keys in :assoc and :dissoc.
+   - a vector or a sequence, diff has the following format:
+     ```
+     {:assoc [[index0 val0] ...]
+      :update [[index0 diff0] ...]
+      :remsert [[false index0 n-elements0] ; remove
+                [true index1 [val0 ...]]   ; insert
+                ...]
+     ```
+     No overlap is expected between the indices in :assoc, :update and :remsert.
+     The indices are referring to the original vector and are strictly increasing inside each operation.
+     - `:assoc` replaces elements in the vector.
+     - `:update` applies the diff to the elements.
+     - `:remsert` either removes or inserts elements from/to the vector.
+       For the same index, a removal should precede an insertion.
+       Insertions are not expected to happen _inside_ removed parts.
+
+   For any other data, diff is the value which will replace it."
+  [data diff])
