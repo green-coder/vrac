@@ -223,17 +223,18 @@
     "Bonjour"
 
     {:a 1}
-    {}
+    {:kind :map}
     {:a 1}
 
     [:a :b]
-    {}
+    {:kind :vector}
     [:a :b]
 
     {:id 7
      :name "Alan"
      :enemy "Grokk"}
-    {:assoc {:age 35
+    {:kind :map
+     :assoc {:age 35
              :friend "Binyl"}
      :update {:name "Alan Laan"}
      :dissoc [:enemy]}
@@ -253,10 +254,13 @@
               {:name "Paperboy"
                :price 30
                :quantity 5}]}
-    {:update {:stuffs {:assoc [[2 {:name "Nintendo Switch"
+    {:kind :map
+     :update {:stuffs {:kind :vector
+                       :assoc [[2 {:name "Nintendo Switch"
                                    :price 199
                                    :quantity 1}]]
-                       :update [[3 {:assoc {:name "Breath of the Wild"
+                       :update [[3 {:kind :map
+                                    :assoc {:name "Breath of the Wild"
                                             :price 60
                                             :quantity 1}
                                     :dissoc [:multiplayer?]}]]

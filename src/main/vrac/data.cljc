@@ -150,6 +150,8 @@
                                            (resolve-query db val v))]))))
           query)))
 
+;; ---------------------------------------------------------
+
 (defn apply-diff
   "Applies the change specified in the diff to data.
 
@@ -185,53 +187,48 @@
 
    For any other data, diff is the value which will replace it."
   [data diff]
-  (cond
-    (map? data)
-    (as-> data xxx
-          (into xxx (:assoc diff))
-          (into xxx
-                (map (fn [[k v]]
-                       [k (apply-diff (get data k) v)]))
-                (:update diff))
-          (apply dissoc xxx (:dissoc diff)))
+  (if (map? diff)
+    (case (:kind diff)
+      :map (as-> data xxx
+                 (into xxx (:assoc diff))
+                 (into xxx
+                       (map (fn [[k v]]
+                              [k (apply-diff (get data k) v)]))
+                       (:update diff))
+                 (apply dissoc xxx (:dissoc diff)))
+      :set (as-> data xxx
+                 (into xxx (:assoc diff))
+                 (apply dissoc xxx (:dissoc diff)))
+      :vector (as-> data xxx
+                    (if-let [diff-assoc (seq (:assoc diff))]
+                      (apply assoc xxx (into [] cat diff-assoc))
+                      xxx)
+                    (if-let [diff-update (seq (:update diff))]
+                      (apply assoc xxx (into []
+                                             (mapcat (fn [[k v]]
+                                                       [k (apply-diff (get data k) v)]))
+                                             diff-update))
+                      xxx)
+                    (loop [index 0
+                           remserts (:remsert diff)
+                           result []]
+                      (let [[insert? start-index n-elements] (first remserts)]
+                        (cond
+                          (nil? remserts)
+                          (into result (subvec xxx index))
 
-    (set? data)
-    (as-> data xxx
-          (into xxx (:assoc diff))
-          (apply dissoc xxx (:dissoc diff)))
+                          (< index start-index)
+                          (recur start-index
+                                remserts
+                                (into result (subvec xxx index start-index)))
 
-    (vector? data)
-    (as-> data xxx
-          (if-let [diff-assoc (seq (:assoc diff))]
-            (apply assoc xxx (into [] cat diff-assoc))
-            xxx)
-          (if-let [diff-update (seq (:update diff))]
-            (apply assoc xxx (into []
-                                   (mapcat (fn [[k v]]
-                                             [k (apply-diff (get data k) v)]))
-                                   diff-update))
-            xxx)
-          (loop [index 0
-                 remserts (:remsert diff)
-                 result []]
-            (let [[insert? start-index n-elements] (first remserts)]
-              (cond
-                (nil? remserts)
-                (into result (subvec xxx index))
+                          insert?
+                          (recur index
+                                (next remserts)
+                                (into result n-elements))
 
-                (< index start-index)
-                (recur start-index
-                      remserts
-                      (into result (subvec xxx index start-index)))
-
-                insert?
-                (recur index
-                      (next remserts)
-                      (into result n-elements))
-
-                :else
-                (recur (+ index n-elements)
-                  (next remserts)
-                  result)))))
-
-    :else diff))
+                          :else
+                          (recur (+ index n-elements)
+                            (next remserts)
+                            result))))))
+    diff))
