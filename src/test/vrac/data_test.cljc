@@ -226,6 +226,16 @@
     {:kind :map}
     {:a 1}
 
+    #{:a :b :c}
+    {:kind :set}
+    #{:a :b :c}
+
+    #{:a :b :c}
+    {:kind :set
+     :conj [:x :y]
+     :disj [:c]}
+    #{:a :b :x :y}
+
     [:a :b]
     {:kind :vector}
     [:a :b]
@@ -282,7 +292,7 @@
 
 (deftest merge-diff-test
   (is (= (vd/merge-diff {:a 1} {:b 2} {:c 3})
-         {:kind :map, :assoc {:b 2, :c 3}})))
+         {:kind :map, :assoc {:a 1, :b 2, :c 3}})))
 
 (deftest assoc-diff-test
   (are [params result]

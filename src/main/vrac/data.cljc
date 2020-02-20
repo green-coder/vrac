@@ -175,10 +175,10 @@
      No overlap is expected between the keys in :assoc, :update and :dissoc.
    - a set, diff has the following format:
      ```
-     {:assoc [key0 ...]}
-      :dissoc [key0 ...]}
+     {:conj [key0 ...]}
+      :disj [key0 ...]}
      ```
-     No overlap is expected between the keys in :assoc and :dissoc.
+     No overlap is expected between the keys in :conj and :disj.
    - a vector or a sequence, diff has the following format:
      ```
      {:assoc [[index0 val0] ...]
@@ -213,8 +213,8 @@
                        (:update diff))
                  (apply dissoc xxx (:dissoc diff)))
       :set (as-> data xxx
-                 (into xxx (:assoc diff))
-                 (apply dissoc xxx (:dissoc diff)))
+                 (apply conj xxx (:conj diff))
+                 (apply disj xxx (:disj diff)))
       :vector (as-> data xxx
                     (if-let [diff-assoc (seq (:assoc diff))]
                       (apply assoc xxx (into [] cat diff-assoc))
@@ -261,19 +261,59 @@
 
 (defn merge-diff
   "Returns the diff which represents the merge operation.
-   `db` is supposed to be a map."
-  [db & maps]
+   Useful on maps."
+  [& maps]
   {:kind :map
    :assoc (apply merge maps)})
 
 (defn assoc-diff
-  "Returns the diff which represents the assoc operation."
-  [db & {:as kvs}]
-  (if (map? db)
+  "Returns the diff which represents the assoc operation.
+  Useful on maps and vectors."
+  [data & {:as kvs}]
+  (if (map? data)
     {:kind :map
      :assoc kvs}
     {:kind :vector
      :assoc (into [] (sort-by first kvs))}))
+
+(defn dissoc-diff
+  "Returns the diff which represents the dissoc operation.
+   Useful on maps."
+  [& keys]
+  {:kind :map
+   :dissoc keys})
+
+(defn conj-diff
+  "Returns the diff which represents the conj operation.
+   Useful on sets and vectors."
+  [data & vals]
+  (if (set? data)
+    {:kind :set
+     :conj (into [] vals)}
+    {:kind :vector
+     :remsert [[true (count data) (into [] data)]]}))
+
+(defn disj-diff
+  "Returns the diff which represents the disj operation.
+   Useful on sets and vectors."
+  [data & vals]
+  (if (set? data)
+    {:kind :set
+     :disj (into [] vals)}
+    {:kind :vector
+     :remsert [[false (- (count data) (count vals)) (count vals)]]}))
+
+(defn remove-diff
+  "Returns the diff which represents the removal of a part in a vector."
+  [index nb-elements]
+  {:kind :vector
+   :remsert [[false index nb-elements]]})
+
+(defn insert-diff
+  "Returns the diff which represents the insertion of elements in a vector."
+  [index vals]
+  {:kind :vector
+   :remsert [[true index vals]]})
 
 (defn update-diff
   "Returns a diff representing the composition of an update around the provided diff."
