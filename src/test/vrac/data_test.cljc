@@ -219,7 +219,7 @@
     (= (vd/apply-diff data diff) result)
 
     "Hello"
-    "Bonjour"
+    {:kind :value, :value "Bonjour"}
     "Bonjour"
 
     {:a 1}
@@ -236,7 +236,8 @@
     {:kind :map
      :assoc {:age 35
              :friend "Binyl"}
-     :update {:name "Alan Laan"}
+     :update {:name {:kind :value
+                     :value "Alan Laan"}}
      :dissoc [:enemy]}
     {:id 7
      :name "Alan Laan"
@@ -278,3 +279,109 @@
               {:name "Nintendo Switch", :price 199, :quantity 1}
               {:name "Breath of the Wild", :awesome? true, :price 60, :quantity 1}
               {:name "Mario Kart Deluxe", :price 50, :quantity 1}]}))
+
+(deftest merge-diff-test
+  (is (= (vd/merge-diff {:a 1} {:b 2} {:c 3})
+         {:kind :map, :assoc {:b 2, :c 3}})))
+
+(deftest assoc-diff-test
+  (are [params result]
+    (= (apply vd/assoc-diff params) result)
+
+    [{:a 1} :b 2]
+    {:kind :map, :assoc {:b 2}}
+
+    [[:a :b :c] 1 :y 0 :x]
+    {:kind :vector, :assoc [[0 :x] [1 :y]]}))
+
+(deftest update-diff-test
+  (are [params result]
+    (= (apply vd/update-diff params) result)
+
+    [{:a {:x :_}} :a vd/assoc-diff :x 1]
+    {:kind :map
+     :update {:a {:kind :map
+                  :assoc {:x 1}}}}
+
+    [[:a {:x 1, :y :_} :c] 1 vd/assoc-diff :y 2]
+    {:kind :vector
+     :update [[1 {:kind :map
+                  :assoc {:y 2}}]]}
+
+    [[:a [:_ :y] :c] 1 vd/assoc-diff 0 :x]
+    {:kind :vector
+     :update [[1 {:kind :vector
+                  :assoc [[0 :x]]}]]}))
+
+(deftest update-in-diff-test
+  (let [db {:user {:profile {:first-name "Sarah"
+                             :last-name "Connor"}}}]
+    (is (= (vd/update-in-diff db [:user :profile] vd/assoc-diff
+                              :first-name "Not Sarah'; DROP TABLE Targets;-- "
+                              :last-name "Definitely not Connor")
+           {:kind :map
+            :update {:user {:kind :map
+                            :update {:profile {:kind :map
+                                               :assoc {:first-name "Not Sarah'; DROP TABLE Targets;-- "
+                                                       :last-name "Definitely not Connor"}}}}}}))))
+
+(deftest assoc-in-diff-test
+  (let [db {:user {:profile {:first-name "Sarah"
+                             :last-name "Connor"}}}]
+    (is (= (vd/assoc-in-diff db [:user :profile :first-name] "Not Sarah'; DROP TABLE Targets;-- ")
+           {:kind :map
+            :update {:user {:kind :map
+                            :update {:profile {:kind :map
+                                               :assoc {:first-name "Not Sarah'; DROP TABLE Targets;-- "}}}}}}))))
+
+(deftest db-assoc-diff-test
+  (are [elements result]
+    (= (vd/db-assoc-diff elements) result)
+
+    [[:item/id 1 #:item{:id 1
+                        :name "MacBook Air"}]
+     [:item/id 2 #:item{:id 2
+                        :name "Umbrella"}]
+     [:user/id 1 #:user{:belongings [[:item/id 1]
+                                     [:item/id 2]]
+                        :id 1
+                        :name "Johanna"}]]
+    {:kind :map
+     :update {:item/id {:kind :map
+                        :assoc {1 #:item{:id 1
+                                         :name "MacBook Air"}
+                                2 #:item{:id 2
+                                         :name "Umbrella"}}}
+              :user/id {:kind :map
+                        :assoc {1 #:user{:id 1
+                                         :name "Johanna"
+                                         :belongings [[:item/id 1]
+                                                      [:item/id 2]]}}}}}))
+
+(deftest db-merge-diff-test
+  (are [elements result]
+    (= (vd/db-merge-diff elements) result)
+
+    [[:item/id 1 #:item{:id 1
+                        :name "MacBook Air"}]
+     [:item/id 2 #:item{:id 2
+                        :name "Umbrella"}]
+     [:user/id 1 #:user{:belongings [[:item/id 1]
+                                     [:item/id 2]]
+                        :id 1
+                        :name "Johanna"}]]
+    {:kind :map
+     :update {:item/id {:kind :map
+                        :update {1 {:kind :map
+                                    :assoc #:item{:id 1
+                                                  :name "MacBook Air"}},
+                                 2 {:kind :map
+                                    :assoc #:item{:id 2
+                                                  :name "Umbrella"}}}},
+              :user/id {:kind :map
+                        :update {1 {:kind :map
+                                    :assoc #:user{:id 1
+                                                  :name "Johanna"
+                                                  :belongings [[:item/id 1]
+                                                               [:item/id 2]]}}}}}}))
+

@@ -66,11 +66,21 @@
 
       :else [[nil nil entity]])))
 
+;; OBSOLETE
 (defn db-assoc
   "Assocs data coming from a normalizer to a db."
   [db normalized-elements]
   (reduce (fn [db [table id entity]]
             (assoc-in db [table id] entity))
+          db
+          normalized-elements))
+
+;; OBSOLETE
+(defn db-merge
+  "Merges data coming from a normalizer to a db."
+  [db normalized-elements]
+  (reduce (fn [db [table id entity]]
+            (update-in db [table id] merge entity))
           db
           normalized-elements))
 
@@ -155,7 +165,7 @@
 (defn apply-diff
   "Applies the change specified in the diff to data.
 
-   When data is:
+   When the `:kind` of diff is:
    - a map, diff has the following format:
      ```
      {:assoc {key0 val0, ...}
@@ -184,10 +194,16 @@
      - `:remsert` either removes or inserts elements from/to the vector.
        For the same index, a removal should precede an insertion.
        Insertions are not expected to happen _inside_ removed parts.
+   - a value, diff has the following format:
+     ```
+     {:value val}
+     ```
+     val replaces the data.
 
-   For any other data, diff is the value which will replace it."
+   When diff is nil, the data is returned."
   [data diff]
-  (if (map? diff)
+  (if (nil? diff)
+    data
     (case (:kind diff)
       :map (as-> data xxx
                  (into xxx (:assoc diff))
@@ -230,5 +246,90 @@
                           :else
                           (recur (+ index n-elements)
                             (next remserts)
-                            result))))))
-    diff))
+                            result)))))
+      :value (:value diff))))
+
+(def empty-diff
+  "The empty diff represents a change with no effect."
+  nil)
+
+(defn value-diff
+  "Returns a diff which represent a replacement by a given value."
+  [val]
+  {:kind :value
+   :value val})
+
+(defn merge-diff
+  "Returns the diff which represents the merge operation.
+   `db` is supposed to be a map."
+  [db & maps]
+  {:kind :map
+   :assoc (apply merge maps)})
+
+(defn assoc-diff
+  "Returns the diff which represents the assoc operation."
+  [db & {:as kvs}]
+  (if (map? db)
+    {:kind :map
+     :assoc kvs}
+    {:kind :vector
+     :assoc (into [] (sort-by first kvs))}))
+
+(defn update-diff
+  "Returns a diff representing the composition of an update around the provided diff."
+  [db key f-diff & params]
+  (let [val (apply f-diff (get db key) params)]
+    (if (map? db)
+      {:kind :map
+       :update {key val}}
+      {:kind :vector
+       :update [[key val]]})))
+
+(defn update-in-diff
+  "Returns a diff representing the composition of an update-in around the provided diff."
+  [db path f-diff & params]
+  (if (seq path)
+    (let [key (first path)]
+      (update-diff db key
+                   #(apply update-in-diff % (next path) f-diff params)))
+    (apply f-diff db params)))
+
+(defn assoc-in-diff
+  "Returns a diff representing the effect of an assoc-in operation."
+  [db path val]
+  (if (seq path)
+    (update-in-diff db (butlast path) assoc-diff (last path) val)
+    empty-diff))
+
+(defn- normalized-elements->tree
+  "Aggregate normalized elements into a tree structure."
+  [normalized-elements]
+  (reduce (fn [db [table id entity]]
+            (assoc-in db [table id] entity))
+          {}
+          normalized-elements))
+
+(defn db-assoc-diff
+  "Returns a diff representing the effect of inserting `[table id entity]` elements in a normalized db."
+  [normalized-elements]
+  {:kind :map
+   :update (into {}
+                 (map (fn [[table id->entity]]
+                        [table {:kind :map
+                                :assoc id->entity}]))
+                 (normalized-elements->tree normalized-elements))})
+
+(defn db-merge-diff
+  "Returns a diff representing the effect of updating `[table id entity]` elements in a normalized db."
+  [normalized-elements]
+  {:kind :map
+   :update (into {}
+                 (map (fn [[table id->entity]]
+                        [table {:kind :map
+                                :update (into {}
+                                              (map (fn [[id entity]]
+                                                     [id {:kind :map
+                                                          :assoc entity}]))
+                                              id->entity)}]))
+                 (normalized-elements->tree normalized-elements))})
+
