@@ -250,6 +250,78 @@
                             result)))))
       :value (:value diff))))
 
+(defn comp-diffs
+  "Returns a diff whose application is equivalent to the consecutive application of 2 diffs.
+   The diffs are expected not to always have an effect on the data.
+
+   For instance:
+    (= (comp-diffs {:kind :set, :conj #{:a}}
+                   {:kind :set, :disj #{:a}})
+       {:kind :set, :disj #{:a}})
+
+  This result makes sense considering that the data may already contain :a, in which case the diff
+  {:kind :set, :conj #{:a}} would have no effect on the data."
+  [base-diff new-diff]
+  (cond
+    (nil? base-diff) new-diff
+    (nil? new-diff) base-diff
+    :else (case (:kind base-diff)
+            :map (let [{base-assoc :assoc
+                        base-update :update
+                        base-dissoc :dissoc} base-diff
+                       {new-assoc :assoc
+                        new-update :update
+                        new-dissoc :dissoc} new-diff
+
+                       assocs (merge (apply-diff (apply dissoc base-assoc new-dissoc)
+                                                 {:kind :map
+                                                  :update (select-keys new-update (keys base-assoc))})
+                                     new-assoc)
+                       updates (let [base-update (apply dissoc base-update new-dissoc)
+                                     new-update (apply dissoc new-update (keys base-assoc))]
+                                 (into {}
+                                       (map (fn [key]
+                                              [key (comp-diffs (get base-update key)
+                                                               (get new-update key))]))
+                                       (set (concat (keys base-update) (keys new-update)))))
+                       dissocs (set/union new-dissoc
+                                          (set/difference base-dissoc (set (keys new-assoc))))]
+                   (cond-> {:kind :map}
+                           (seq assocs) (assoc :assoc assocs)
+                           (seq updates) (assoc :update updates)
+                           (seq dissocs) (assoc :dissoc dissocs)))
+            :set {:kind :set
+                  :conj (set/union (:conj new-diff)
+                                   (set/difference (:conj base-diff)
+                                                   (:disj new-diff)))
+                  :disj (set/union (:disj new-diff)
+                                   (set/difference (:disj base-diff)
+                                                   (:conj new-diff)))}
+            ;  {:assoc [[index0 val0] ...]
+            ;   :update [[index0 diff0] ...]
+            ;   :remsert [[false index0 n-elements0] ; remove
+            ;             [true index1 [val0 ...]]   ; insert
+            ;             ...]
+
+            :vector (let [{base-assoc :assoc
+                           base-update :update
+                           base-remsert :remsert} base-diff
+                          {new-assoc :assoc
+                           new-update :update
+                           new-remsert :remsert} new-diff
+
+                          ;; to implement ...
+                          assocs nil
+                          updates nil
+                          remserts nil]
+                      (cond-> {:kind :vector}
+                              (seq assocs) (assoc :assoc assocs)
+                              (seq updates) (assoc :update updates)
+                              (seq remserts) (assoc :remsert remserts)))
+
+            :value {:kind :value
+                    :value (apply-diff (:value base-diff) new-diff)})))
+
 (def empty-diff
   "The empty diff represents a change with no effect."
   nil)

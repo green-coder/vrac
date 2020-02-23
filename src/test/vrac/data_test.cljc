@@ -290,6 +290,77 @@
               {:name "Breath of the Wild", :awesome? true, :price 60, :quantity 1}
               {:name "Mario Kart Deluxe", :price 50, :quantity 1}]}))
 
+(deftest comp-diffs-test
+  (are [base-diff new-diff result]
+    (= (vd/comp-diffs base-diff new-diff) result)
+
+    nil
+    nil
+    nil
+
+    nil
+    {:kind :value, :value "Hi"}
+    {:kind :value, :value "Hi"}
+
+    {:kind :value, :value "Hi"}
+    nil
+    {:kind :value, :value "Hi"}
+
+    {:kind :map, :assoc {:a 1, :b 2}}
+    {:kind :map, :assoc {:a 10}}
+    {:kind :map, :assoc {:a 10, :b 2}}
+
+    {:kind :map, :dissoc #{:b}}
+    {:kind :map, :dissoc #{:a}}
+    {:kind :map, :dissoc #{:a :b}}
+
+    {:kind :map
+     :assoc {:a 1, :b 2}
+     :update {:c {:kind :set
+                  :conj #{:x}}}
+     :dissoc #{:d :f}}
+    {:kind :map
+     :assoc {:f 15}
+     :update {:a {:kind :value
+                  :value 10}
+              :c {:kind :set
+                  :disj #{:y}}}
+     :dissoc #{:b}}
+    {:kind :map
+     :assoc {:a 10, :f 15}
+     :update {:c {:kind :set
+                  :conj #{:x}
+                  :disj #{:y}}}
+     :dissoc #{:b :d}}
+
+    {:kind :set, :conj #{:x} :disj #{:a}}
+    {:kind :set, :conj #{:a :b} :disj #{:x :y}}
+    {:kind :set, :conj #{:a :b} :disj #{:x :y}}
+
+    {:kind :set, :conj #{:a :b} :disj #{:x :y}}
+    {:kind :set, :conj #{:x} :disj #{:a}}
+    {:kind :set, :conj #{:x :b} :disj #{:a :y}}
+
+    ;{:kind :vector, :assoc [[0 :a] [1 :b]]}
+    ;{:kind :vector, :assoc [[1 :x] [2 :y]]}
+    ;{:kind :vector, :assoc [[0 :a] [1 :x] [2 :y]]}
+
+    {:kind :value, :value {:a 1, :b 2, :c 3}}
+    {:kind :map, :assoc {:a :x}, :dissoc #{:b}}
+    {:kind :value, :value {:a :x, :c 3}}
+
+    {:kind :value, :value #{:a :b :c}}
+    {:kind :set, :conj #{:x}, :disj #{:b}}
+    {:kind :value, :value #{:a :c :x}}
+
+    {:kind :value, :value [1 2 3]}
+    {:kind :vector, :assoc [[0 :x]]}
+    {:kind :value, :value [:x 2 3]}
+
+    {:kind :value, :value "Bonjour"}
+    {:kind :value, :value "Hallo"}
+    {:kind :value, :value "Hallo"}))
+
 (deftest merge-diff-test
   (is (= (vd/merge-diff {:a 1} {:b 2} {:c 3})
          {:kind :map, :assoc {:a 1, :b 2, :c 3}})))
