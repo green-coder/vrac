@@ -232,8 +232,8 @@
 
     #{:a :b :c}
     {:kind :set
-     :conj [:x :y]
-     :disj [:c]}
+     :conj #{:x :y}
+     :disj #{:c}}
     #{:a :b :x :y}
 
     [:a :b]

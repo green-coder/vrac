@@ -1,5 +1,6 @@
 (ns vrac.data
-  (:refer-clojure :exclude [ident?]))
+  (:refer-clojure :exclude [ident?])
+  (:require [clojure.set :as set]))
 
 (comment
   (defn matching-primary-keyword-finder
@@ -175,10 +176,10 @@
      No overlap is expected between the keys in :assoc, :update and :dissoc.
    - a set, diff has the following format:
      ```
-     {:conj [key0 ...]}
-      :disj [key0 ...]}
+     {:conj #{val0 ...}
+      :disj #{val0 ...}}
      ```
-     No overlap is expected between the keys in :conj and :disj.
+     No overlap is expected between the vals in :conj and :disj.
    - a vector or a sequence, diff has the following format:
      ```
      {:assoc [[index0 val0] ...]
@@ -213,8 +214,8 @@
                        (:update diff))
                  (apply dissoc xxx (:dissoc diff)))
       :set (as-> data xxx
-                 (apply conj xxx (:conj diff))
-                 (apply disj xxx (:disj diff)))
+                 (set/union xxx (:conj diff))
+                 (set/difference xxx (:disj diff)))
       :vector (as-> data xxx
                     (if-let [diff-assoc (seq (:assoc diff))]
                       (apply assoc xxx (into [] cat diff-assoc))
@@ -289,7 +290,7 @@
   [data & vals]
   (if (set? data)
     {:kind :set
-     :conj (into [] vals)}
+     :conj (set vals)}
     {:kind :vector
      :remsert [[true (count data) (into [] data)]]}))
 
@@ -299,7 +300,7 @@
   [data & vals]
   (if (set? data)
     {:kind :set
-     :disj (into [] vals)}
+     :disj (set vals)}
     {:kind :vector
      :remsert [[false (- (count data) (count vals)) (count vals)]]}))
 
