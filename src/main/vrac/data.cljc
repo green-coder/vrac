@@ -171,7 +171,7 @@
      ```
      {:assoc {key0 val0, ...}
       :update {key0 diff0, ...}
-      :dissoc [key0 ...]}
+      :dissoc #{key0 ...}}
      ```
      No overlap is expected between the keys in :assoc, :update and :dissoc.
    - a set, diff has the following format:
@@ -282,7 +282,7 @@
    Useful on maps."
   [& keys]
   {:kind :map
-   :dissoc keys})
+   :dissoc (set keys)})
 
 (defn conj-diff
   "Returns the diff which represents the conj operation.

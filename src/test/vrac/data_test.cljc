@@ -248,7 +248,7 @@
              :friend "Binyl"}
      :update {:name {:kind :value
                      :value "Alan Laan"}}
-     :dissoc [:enemy]}
+     :dissoc #{:enemy}}
     {:id 7
      :name "Alan Laan"
      :age 35
@@ -274,7 +274,7 @@
                                     :assoc {:name "Breath of the Wild"
                                             :price 60
                                             :quantity 1}
-                                    :dissoc [:multiplayer?]}]]
+                                    :dissoc #{:multiplayer?}}]]
                        :remsert [[false 0 2]
                                  [true 0 [{:name "Sleep"
                                            :price nil}
