@@ -1,5 +1,6 @@
 (ns vrac.core
-  (:require [clojure.spec.alpha :as s]
+  (:require [clojure.set :as set]
+            [clojure.spec.alpha :as s]
             [vrac.component :as vc]
             [vrac.util :refer [map-vals tag-id-class]])
   #?(:cljs (:require-macros vrac.core)))
@@ -321,8 +322,8 @@
         parsed-template (s/conform ::vc/template template)
         template-props (when-not (= parsed-template :clojure.spec.alpha/invalid)
                          (get-template-props parsed-template))
-        missing-props (clojure.set/difference (set template-props)
-                                              (set props))]
+        missing-props (set/difference (set template-props)
+                                      (set props))]
     (when (= parsed-template :clojure.spec.alpha/invalid)
       (throw (ex-info (str "Invalid template: " (s/explain-str ::vc/template template))
                       (s/explain-str ::vc/template template))))

@@ -367,25 +367,25 @@
        [:li "MiaoMiao"]
        [:li "Miaaaawww"]])))
 
-(deftest defc*-test
-  (are [args template]
-    (= (select-keys (apply #'v/defc* args)
-                    [:id :props :template :template-props])
-       template)
-
-    ; the dynamic namespace resolution is incorrect while running tests in the IDE.
-    ;'[foo-comp [a b]
-    ;  nil
-    ;  [:p a b]]
-    ;'{:id ::foo-comp
-    ;  :props '[a b]
-    ;  :template '[:p a b]
-    ;  :template-props '#{a b}}
-
-    '[foo-comp [a b c]
-      {:id ::foobar}
-      [:p a b]]
-    '{:id ::foobar
-      :props '[a b c]
-      :template '[:p a b]
-      :template-props '#{a b}}))
+;(deftest defc*-test
+;  (are [args template]
+;    (= (select-keys (apply #'v/defc* args)
+;                    [:id :props :template :template-props])
+;       template)
+;
+;    ; the dynamic namespace resolution is incorrect while running tests in the IDE.
+;    ;'[foo-comp [a b]
+;    ;  nil
+;    ;  [:p a b]]
+;    ;'{:id ::foo-comp
+;    ;  :props '[a b]
+;    ;  :template '[:p a b]
+;    ;  :template-props '#{a b}}
+;
+;    '[foo-comp [a b c]
+;      {:id ::foobar}
+;      [:p a b]]
+;    '{:id ::foobar
+;      :props '[a b c]
+;      :template '[:p a b]
+;      :template-props '#{a b}}))
