@@ -55,6 +55,12 @@
                (update context :effects
                        conj [:db (handler db event)])))})
 
+(defn diff-handler-interceptor [handler]
+  {:before (fn [context]
+             (let [{db :db, event :event} (:coeffects context)]
+               (update context :effects
+                       conj [:diff (handler db event)])))})
+
 ;; Some common effect handlers
 
 (defn db-effect-handler [db-atom]
