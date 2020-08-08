@@ -1,8 +1,8 @@
 {:paths ["src"]
- :deps {;org.clojure/alpha.spec {:git/url "https://github.com/clojure/spec-alpha2.git"
-        ;                        :sha "b644e4d8c5553e10544d920306690fffe9b53e15"}
+ :deps {minimallist        {:mvn/version "0.0.3"}
+        diffuse            {:mvn/version "0.0.2"}
         com.wsscode/pathom {:mvn/version "2.2.31"}
-        camel-snake-kebab {:mvn/version "0.4.1"}}
+        camel-snake-kebab  {:mvn/version "0.4.1"}}
 
  :aliases {:dev {:extra-deps {org.clojure/clojure {:mvn/version "1.10.1"}
                               org.clojure/clojurescript {:mvn/version "1.10.773"}}}
