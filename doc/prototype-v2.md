@@ -81,6 +81,18 @@ If the diff is not `nil`, then their dependent nodes are added to a queue
 (if they are not already inside), and they will be recomputed once it's their turn.
 This re-computation goes on until there are no longer any compute node in the queue.
 
+### Dynamics in the computation graph
+
+Some compute nodes representing branching (`if`, `when`, `case`) are special.
+Depending on their "condition" input, their output will be computed by different nodes.
+
+We only want the condition matching compute nodes to be instantiated and updated at any time.
+It means that when the condition is changing and matches other nodes, some compute nodes
+have to be unregistered, and some other have to be created and registered.
+
+The same dynamics happen with the `for` nodes, when elements are added/removed from the
+iterated collection.
+
 ### The render nodes
 
 After the graph of computed values is up-to-date and reflects the new state of the client db,
