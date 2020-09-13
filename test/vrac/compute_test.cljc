@@ -277,15 +277,17 @@
                  (str first-name " " last-name))
 
    ;; Changes when adding/removing dependent nodes in the graph.
-   :subscriber-tree empty-subscriber-tree
+   ;:subscriber-tree empty-subscriber-tree
 
-   ;; Changes when at least of of the inputs changes.
-   :inputs-state [{:state nil
-                   :new-state nil
-                   :diff nil}]
+   ;; Changes when at least one of the inputs changes.
+   ;:inputs-state [{:state nil
+   ;                :new-state nil
+   ;                :diff nil))
 
-   ;; Changes after each re-computation of the node.
-   :state nil})
+   ;; May change after each re-computation of the node.
+   ;:state nil})
+
+   #__})
 
 ;; (if (< (:a global) (:b global))
 ;;   (:c global)

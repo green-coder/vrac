@@ -101,10 +101,10 @@
       ;; Changes when adding/removing dependent nodes in the graph.
       :subscriber-tree empty-subscriber-tree
 
-      ;; Changes when at least of of the inputs changes.
+      ;; Changes when at least one of the inputs changes.
       :inputs-state [{:diff nil}]
 
-      ;; Changes after each re-computation of the node.
+      ;; May change after each re-computation of the node.
       :state nil}})
 
 
@@ -113,13 +113,14 @@
    The node needs to have a unique node-id and a correct depth."
   [graph node]
   (let [node-id (:node-id node)
-        node (assoc node
-               :compute-depth (inc (apply max (map (fn [input]
-                                                     (-> graph (get (:node-id input)) :compute-depth))
-                                                   (:inputs node))))
-               :subscriber-tree empty-subscriber-tree
-               :inputs-state (vec (repeat (count (:inputs node)) nil))
-               :state nil)]
+        node (cond-> (assoc node
+                       :subscriber-tree empty-subscriber-tree
+                       :inputs-state (vec (repeat (count (:inputs node)) nil))
+                       :state nil)
+               (not (contains? node :compute-depth))
+               (assoc :compute-depth (inc (apply max (map (fn [input]
+                                                            (-> graph (get (:node-id input)) :compute-depth))
+                                                          (:inputs node))))))]
     (-> (reduce (fn [graph [index input]]
                   (update-in graph [(:node-id input) :subscriber-tree]
                              subscribe-on-path (:path input) [node-id index]))
@@ -165,15 +166,19 @@
               (remove nil?))
         input-updates))
 
-(defn- input-fn
-  "A formatter of the inputs values into the format the compute-fn expects them."
-  [input-format]
-  (cond
-    (keyword? input-format) input-format
-    (vector? input-format) (apply juxt input-format)
-    (set? input-format) #(select-keys % input-format)
-    (fn? input-format) input-format
-    :else identity))
+(defn- format-input
+  "Transforms an input value into the format expected by the compute-fn."
+  [input input-state]
+  (let [input-state (cond-> input-state
+                      (= (:diff input-state) h/missing)
+                      (assoc :new-state (:missing-value input)))
+        format (:format input)]
+    (cond
+      (keyword? format) (format input-state)
+      (vector? format) ((apply juxt format) input-state)
+      (set? format) (select-keys format input-state)
+      (fn? format) (format input-state)
+      :else input-state)))
 
 (defn propagate-diff
   "Returns a new graph with the effects of a diff propagated."
@@ -189,8 +194,7 @@
             ; Run the compute-fn on the node
             node (get graph node-id)
             state (:state node)
-            formatted-inputs (cond->> (mapv (fn [input input-state]
-                                              ((input-fn (:format input)) input-state))
+            formatted-inputs (cond->> (mapv format-input
                                             (:inputs node)
                                             (:inputs-state node))
                                (-> node :output :state-in-input?) (cons state))
