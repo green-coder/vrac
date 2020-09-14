@@ -107,20 +107,23 @@
       ;; May change after each re-computation of the node.
       :state nil}})
 
+(defmacro assoc-default [m k v]
+  `(let [m# ~m
+         k# ~k]
+     (cond-> m# (not (contains? m# k#)) (assoc k# ~v))))
 
 (defn add-graph-node
   "Returns a compute-graph with the node added.
    The node needs to have a unique node-id and a correct depth."
   [graph node]
   (let [node-id (:node-id node)
-        node (cond-> (assoc node
-                       :subscriber-tree empty-subscriber-tree
-                       :inputs-state (vec (repeat (count (:inputs node)) nil))
-                       :state nil)
-               (not (contains? node :compute-depth))
-               (assoc :compute-depth (inc (apply max (map (fn [input]
-                                                            (-> graph (get (:node-id input)) :compute-depth))
-                                                          (:inputs node))))))]
+        node (-> node
+                 (assoc :subscriber-tree empty-subscriber-tree
+                        :inputs-state (vec (repeat (count (:inputs node)) nil)))
+                 (assoc-default :state nil)
+                 (assoc-default :compute-depth (inc (apply max (map (fn [input]
+                                                                      (-> graph (get (:node-id input)) :compute-depth))
+                                                                    (:inputs node))))))]
     (-> (reduce (fn [graph [index input]]
                   (update-in graph [(:node-id input) :subscriber-tree]
                              subscribe-on-path (:path input) [node-id index]))
