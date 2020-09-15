@@ -7,7 +7,7 @@
                                         subscribe-on-path
                                         unsubscribe-from-path
                                         diff->subscribers
-                                        empty-graph
+                                        initial-graph
                                         add-graph-node
                                         remove-graph-node
                                         empty-priority-queue
@@ -255,83 +255,37 @@
   {;; Constant while in the graph.
    :node-id 1
    ;:compute-depth 1
-   :inputs [{:node-id 0 ; 0 is always the client db
-             :path [:user :first-name]
-             :missing-value nil ; value to be used for new-state when diff is h/missing.
-             ; Format describes how the data arrives in the function, and which data.
-             ; It can have the following shapes:
-             ; - :new-state for a single value, can be either :new-state or :diff.
-             ; - [:state :new-state :diff] for a vector of values in the specified order.
-             ; - #{:state :new-state :diff} for a hash-map of values.
-             ; - a fn
-             :format :new-state}
-            {:node-id 0
-             :path [:user :last-name]
-             :missing-value nil
-             :format :new-state}]
+   :inputs {:first-name {:node-id 0 ; 0 is always the client db
+                         :path [:user :first-name]
+                         ; value to be used for new-state when diff is h/missing.
+                         :missing-value nil}
+            :last-name {:node-id 0
+                        :path [:user :last-name]
+                        :missing-value nil}}
    :output {; Output format can be either :new-state or :diff, :diff by default.
-            :format :new-state
-            ; Should we inject the current state?
-            :state-in-input? true}
-   :compute-fn (fn [state first-name last-name]
-                 (str first-name " " last-name))
-
-   ;; Changes when adding/removing dependent nodes in the graph.
-   ;:subscriber-tree empty-subscriber-tree
-
-   ;; Changes when at least one of the inputs changes.
-   ;:inputs-state [{:state nil
-   ;                :new-state nil
-   ;                :diff nil))
-
-   ;; May change after each re-computation of the node.
-   ;:state nil})
+            :format :new-state}
+   :compute-fn (fn [node]
+                 (str (or (-> node :inputs-update :first-name :new-state)
+                          (-> node :inputs :first-name :state))
+                      " "
+                      (or (-> node :inputs-update :last-name :new-state)
+                          (-> node :inputs :last-name :state))))
 
    #__})
-
-;; (if (< (:a global) (:b global))
-;;   (:c global)
-;;   (:d global))
-;; Note: This example shows the general pattern.
-;;       On a real case, (< (:a global) (:b global)) could be in a separate node.
-(def branch-node-1
-  {:type :branch
-   :node-id 5
-   :compute-depth 1
-   :inputs [{:node-id 0
-             :path [:a]
-             :format :new-state}
-            {:node-id 0
-             :path [:b]
-             :format :new-state}]
-   :branches {:then {:node-id 0
-                     :path [:c]
-                     ;; nodes which need to be added to the graph when this branch is selected.
-                     :nodes-fn (constantly [])}
-              :else {:node-id 0
-                     :path [:d]
-                     :nodes-fn (constantly [])}}
-   :branch-selection-fn (fn [a b]
-                          (if (< a b)
-                            ; (:c global)
-                            :then
-                            ; (:d global)
-                            :else))})
 
 (def render-node-1
   {:node-id 2
    :render-depth 1
-   :inputs [{:node-id 1
-             :path []
-             :format :new-state
-             :missing-value nil}]
+   :inputs {:full-name {:node-id 1
+                        :path []
+                        :missing-value nil}}
    :output {:format :new-state}
    ; will be changed later
-   :compute-fn (fn [full-name]
-                 full-name)})
+   :compute-fn (fn [node]
+                 [:div (-> node :inputs-update :full-name :new-state)])})
 
 (def full-name-graph
-  (-> empty-graph
+  (-> initial-graph
       (add-graph-node compute-node-1)
       (add-graph-node render-node-1)))
 
@@ -343,3 +297,80 @@
 
   #__)
 
+
+;; -------------------------------------------------------------------------------------
+;; For loop
+
+; db
+{:items [{:name "Apple" :price 8}
+         {:name "Banana" :price 10}
+         {:name "Strawberry" :price 16}]}
+
+; output of the mapv node
+[{:name "Apple" :price 9}
+ {:name "Banana" :price 11}
+ {:name "Strawberry" :price 17}]
+
+; Make a change in the db
+(h/map-update :items (h/vec-insert 2 {:name "Coconut" :price 12}))
+
+; Update on the derived array
+[{:name "Apple" :price 9}
+ {:name "Banana" :price 11}
+ {:name "Coconut" :price 13}
+ {:name "Strawberry" :price 17}]
+
+
+(defn inc-node [node-id item-index]
+  {:node-id node-id
+   :inputs [{:node-id 0
+             :path [:items item-index :price]}]
+   :compute-fn (fn [node]
+                 (h/value (-> node :inputs-update 0 :new-state inc)))})
+
+;; TODO:
+;; - move the nodes into a :nodes sub hashmap.
+;; - add a :next-id 0 entry beside it.
+;; - the root node gets the 0 id when added.
+
+; '[:ul (for [name (:name-list global)]
+;         [:li name])]
+
+(let [for-body-node (fn [item-index]
+                      {:node-id (+ 2 item-index)
+                       :inputs [{:node-id 0
+                                 :path [:name-list item-index]}]
+                       :compute-fn (fn [name]
+                                     [:li name])})
+      for-node {:node-id 1
+                :inputs [{:node-id 0
+                          :path [:name-list]}]
+                ;:compute-depth 10
+                :compute-fn (fn [name-list]
+                              (:diff name-list))
+                :transform-graph-fn (fn [graph node-id])}])
+
+;; We don't want to get notified of all the inputs each time one of them changes.
+;; For example, we don't want to have a list of 100 persons, when 1 person changes.
+;; What we could do instead is receiving diff of what has changed among the inputs.
+;; It would mean receiving only 1 input in the shape of a diff, which is created as
+;; the combination (via d/comp) of the change provided by all the diffs on the inputs
+;; which has changed.
+
+;; Basic use case with a `for`.
+'[:ul (for [name (:name-list global)]
+        [:li name])]
+
+{:name-list ["Alice" "Bob" "Coco"]}
+'[:ul
+  [:li "Alice"]
+  [:li "Bob"]
+  [:li "Coco"]]
+
+
+;; Complete use case with a `for` and a `if`.
+'[:h3 "Full name list:"
+  [:ul (for [{:keys [first-name last-name] :as user} (:user-list global)]
+         [:li (if (nil? last-name)
+                first-name
+                (str first-name " " last-name))])]]
