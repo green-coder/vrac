@@ -303,7 +303,7 @@
 
 
 ;; -------------------------------------------------------------------------------------
-;; For loop
+;; (mapv (fn [x] (update :price inc)) ...)
 
 ; db
 {:items [{:name "Apple" :price 8}
@@ -316,7 +316,10 @@
  {:name "Strawberry" :price 17}]
 
 ; Make a change in the db
-(h/map-update :items (h/vec-insert 2 {:name "Coconut" :price 12}))
+(h/map-update :items (h/vec-insert 2 [{:name "Coconut" :price 12}]))
+
+; Change as output of the mapv node
+(h/vec-insert 2 [{:name "Coconut" :price 13}])
 
 ; Update on the derived array
 [{:name "Apple" :price 9}
@@ -331,49 +334,44 @@
    :compute-fn (fn [node]
                  (h/value (-> node :inputs-update :val :new-state inc)))})
 
-;; TODO:
-;; - move the nodes into a :nodes sub hashmap.
-;; - add a :next-id 0 entry beside it.
-;; - the root node gets the 0 id when added.
-
 ; '[:ul (for [name (:name-list global)]
 ;         [:li name])]
 
-(let [for-body-node (fn [item-index]
-                      {:node-id (+ 2 item-index)
-                       :inputs [{:node-id 0
-                                 :path [:name-list item-index]}]
-                       :compute-fn (fn [name]
-                                     [:li name])})
-      for-node {:node-id 1
-                :inputs [{:node-id 0
-                          :path [:name-list]}]
-                ;:compute-depth 10
-                :compute-fn (fn [name-list]
-                              (:diff name-list))
-                :transform-graph-fn (fn [graph node-id])}])
+;; TODO: clear up the d/update function in diffuse
+#_[:index-op (-> (h/vector-of (h/alt [:no-op (h/vector (h/val :no-op)
+                                                       (h/ref 'size))]
+                                     [:update (h/vector (h/val :update)
+                                                        (h/in-vector (h/+ (h/ref 'diff))))]
+                                     [:remove (h/vector (h/val :remove)
+                                                        (h/ref 'size))]
+                                     [:insert (h/vector (h/val :insert)
+                                                        (h/in-vector (h/+ (h/ref 'value))))])))]
+; Problem:
+; If each node maintains a state, then there is the cost of the insertion into large arrays.
+; It would be better if we don't have to maintain a state in each node by default.
+; Side note: diff->subscribe-tree does not really need to distribute state and new-state,
+; the subscribing node can find those states if it needs to.
+; Side node 2: When we dynamically add nodes, they need to know the state, not just "the diff of the moment".
+; I should develop the rendering and the template further, to better identify what/when/where are my needs w.r.t. state vs. diff.
 
-;; We don't want to get notified of all the inputs each time one of them changes.
-;; For example, we don't want to have a list of 100 persons, when 1 person changes.
-;; What we could do instead is receiving diff of what has changed among the inputs.
-;; It would mean receiving only 1 input in the shape of a diff, which is created as
-;; the combination (via d/comp) of the change provided by all the diffs on the inputs
-;; which has changed.
+(defn mapv-node [input-node-id input-coll-path]
+  {:inputs {:coll {:node-id input-node-id
+                   :path input-coll-path}}
+   :transform-graph-fn (fn [graph node-id]
+                         ;; TODO: add nodes in the graph when the diff contains additions
+                         (let [node (-> graph :nodes (get node-id))
+                               coll-update (-> node :inputs-update :coll)]
+                           (if (nil? coll-update)
+                             graph
+                             (loop [[operation & operations] (-> coll-update :diff :index-op)
+                                    index 0]
+                               (case (first operation)
+                                 :no-op (recur operations (+ index (second operation)))
+                                 :update (recur operations (+ index (count (second operation))))
+                                 :remove (recur operations (+ index (second operation)))
+                                 :insert (recur operations (+ index (count (second operation)))))))))
+   :compute-fn (fn [node]
+                 ; TODO: Convert the diff on the inc items into a diff of a collection of them.
+                 (-> :diff))})
 
-;; Basic use case with a `for`.
-'[:ul (for [name (:name-list global)]
-        [:li name])]
-
-{:name-list ["Alice" "Bob" "Coco"]}
-'[:ul
-  [:li "Alice"]
-  [:li "Bob"]
-  [:li "Coco"]]
-
-
-;; Complete use case with a `for` and a `if`.
-'[:h3 "Full name list:"
-  [:ul (for [{:keys [first-name last-name] :as user} (:user-list global)]
-         [:li (if (nil? last-name)
-                first-name
-                (str first-name " " last-name))])]]
+(mapv-node 0 [:name-list])
