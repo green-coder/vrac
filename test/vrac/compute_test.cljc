@@ -252,9 +252,7 @@
 
 ;; This data will be generated from the template, with a unique node-id and a correct compute-depth.
 (def compute-node-1
-  {;; Constant while in the graph.
-   :node-id 1
-   ;:compute-depth 1
+  {;:compute-depth 1
    :inputs {:first-name {:node-id 0 ; 0 is always the client db
                          :path [:user :first-name]
                          ; value to be used for new-state when diff is h/missing.
@@ -274,8 +272,7 @@
    #__})
 
 (def render-node-1
-  {:node-id 2
-   :render-depth 1
+  {:render-depth 1
    :inputs {:full-name {:node-id 1
                         :path []
                         :missing-value nil}}

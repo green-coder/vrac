@@ -90,29 +90,31 @@
                        results))
                    (into result-on-this-node cat)))))
 
-(def empty-graph {})
+(def empty-graph
+  {:nodes {}
+   :next-id 0})
 
-#_{0 {;; Constant while in the graph.
-      :node-id 0
-      :compute-depth 0
+#_{;; Constant while in the graph.
+   :node-id 0
+   :compute-depth 0
 
-      ;; The input keys are local ids.
-      :inputs {:event {;:state nil
-                       :format :diff}}
-      :output {:format :diff}
-      :compute-fn (fn [node]
-                    (-> node :inputs-update :event :diff))
+   ;; The input keys are local ids.
+   :inputs {:event {;:state nil
+                    :format :diff}}
+   :output {:format :diff}
+   :compute-fn (fn [node]
+                 (-> node :inputs-update :event :diff))
 
-      ;; Changes when adding/removing dependent nodes in the graph.
-      :subscriber-tree empty-subscriber-tree
+   ;; Changes when adding/removing dependent nodes in the graph.
+   :subscriber-tree empty-subscriber-tree
 
-      ;; Contains the updated input values (new-state and diff).
-      :inputs-update {} ; {:event {:new-state new-state :diff diff}}
+   ;; Contains the updated input values (new-state and diff).
+   :inputs-update {} ; {:event {:new-state new-state :diff diff}}
 
-      ;; May change after each re-computation of the node.
-      ;:state nil
+   ;; May change after each re-computation of the node.
+   ;:state nil
 
-      #__}}
+   #__}
 
 (defmacro assoc-default [m k v]
   `(let [m# ~m
@@ -122,39 +124,48 @@
 (defn add-graph-node
   "Returns a compute-graph with the node added.
    The node needs to have a unique node-id and a correct depth."
-  [graph node]
-  (let [node-id (:node-id node)
+  [{:keys [nodes next-id] :as graph} node]
+  (let [; Assign an id to the added node.
+        node-id next-id
+        next-id (inc next-id)
+
+        ; Add default values for the implementation to use.
         node (-> node
                  (assoc :subscriber-tree empty-subscriber-tree
                         :inputs-update {})
                  ;(assoc-default :state nil)
                  (assoc-default :compute-depth (inc (apply max (map (fn [[input-key input]]
-                                                                      (-> graph (get (:node-id input)) :compute-depth))
-                                                                    (:inputs node))))))]
-    (-> (reduce (fn [graph [input-key input]]
-                  (cond-> graph
-                    (contains? graph (:node-id input))
-                    (update-in [(:node-id input) :subscriber-tree]
-                               subscribe-on-path (:path input) [node-id input-key])))
-                graph
-                (:inputs node))
-        (assoc node-id node))))
+                                                                      (-> nodes (get (:node-id input)) :compute-depth))
+                                                                    (:inputs node))))))
+
+        ; Connect inputs to subscriber trees.
+        nodes (-> (reduce (fn [graph [input-key input]]
+                            (cond-> graph
+                              (contains? graph (:node-id input))
+                              (update-in [(:node-id input) :subscriber-tree]
+                                         subscribe-on-path (:path input) [node-id input-key])))
+                          nodes
+                          (:inputs node))
+                  (assoc node-id node))]
+    ; The new graph
+    {:nodes nodes
+     :next-id next-id}))
 
 (defn remove-graph-node
   "Returns a compute-graph with the node removed.
    The user has to make sure that no other nodes depend on the node to remove."
-  [graph node-id]
-  (-> (reduce (fn [graph [input-key input]]
-                (update-in graph [(:node-id input) :subscriber-tree]
-                           unsubscribe-from-path (:path input) [node-id input-key]))
-              graph
-              (-> graph (get node-id) :inputs))
-      (dissoc node-id)))
+  [{:keys [nodes] :as graph} node-id]
+  (assoc graph
+    :nodes (-> (reduce (fn [graph [input-key input]]
+                         (update-in graph [(:node-id input) :subscriber-tree]
+                                    unsubscribe-from-path (:path input) [node-id input-key]))
+                       nodes
+                       (-> nodes (get node-id) :inputs))
+               (dissoc node-id))))
 
 (def initial-graph
   (add-graph-node empty-graph
-                  {:node-id 0
-                   :compute-depth 0
+                  {:compute-depth 0
                    :inputs {:event {}}
                    :output {:format :diff}
                    :compute-fn (fn [node]
@@ -168,22 +179,21 @@
 
    Example of inputs-updates:
    `[[[node-id input-key] {:state ..., :new-state ..., :diff ...}]]`"
-  [graph inputs-updates]
+  [nodes inputs-updates]
   (reduce (fn
-            ([graph] graph)
-            ([graph [[node-id input-key] input-value]]
-             (assoc-in graph [node-id :inputs-update input-key] input-value)))
-          graph
+            ([nodes] nodes)
+            ([nodes [[node-id input-key] input-value]]
+             (assoc-in nodes [node-id :inputs-update input-key] input-value)))
+          nodes
           inputs-updates))
 
 (defn- update-priority-queue
   "Add the nodes in the priority queue, if they are not already there."
-  [priority-queue graph inputs-updates]
+  [priority-queue nodes inputs-updates]
   (into priority-queue
-        (comp (map (fn [[[node-id input-key] input-value]]
-                     (when-let [priority (-> graph (get node-id) :compute-depth)]
-                       [priority node-id])))
-              (remove nil?))
+        (keep (fn [[[node-id input-key] input-value]]
+                (when-let [priority (-> nodes (get node-id) :compute-depth)]
+                  [priority node-id])))
         inputs-updates))
 
 ;(defn- format-input
@@ -202,17 +212,18 @@
 
 (defn propagate-diff
   "Returns a new graph with the effects of a diff propagated."
-  [diff graph]
+  [diff {:keys [nodes next-id] :as graph}]
   (loop [priority-queue (conj empty-priority-queue [0 0])
-         graph (assoc-in graph [0 :inputs-update :event] {:diff diff})]
+         nodes (assoc-in nodes [0 :inputs-update :event] {:diff diff})]
     (if (empty? priority-queue)
-      graph
+      {:nodes nodes
+       :next-id next-id}
       (let [; Pop the first node in the queue
             [_ node-id :as node-entry] (first priority-queue)
             priority-queue (disj priority-queue node-entry)
 
             ; Run the compute-fn on the node
-            node (get graph node-id)
+            node (get nodes node-id)
             state (:state node)
             output ((:compute-fn node) node)
             [new-state diff] (case (-> node :output (:format :diff))
@@ -229,7 +240,7 @@
                    :inputs-update {})]
 
         (if (nil? diff)
-          (recur priority-queue (assoc graph node-id node))
+          (recur priority-queue (assoc nodes node-id node))
           (let [; Save this node's state
                 node (assoc node :state new-state)
 
@@ -237,8 +248,8 @@
                 inputs-updates (diff->subscribers state new-state diff (:subscriber-tree node))
 
                 ; Set the values on a subscriber' inputs
-                graph (update-dependents-inputs graph inputs-updates)
+                nodes (update-dependents-inputs nodes inputs-updates)
 
                 ; Add the nodes to the priority queue, if they are not already there.
-                priority-queue (update-priority-queue priority-queue graph inputs-updates)]
-            (recur priority-queue (assoc graph node-id node))))))))
+                priority-queue (update-priority-queue priority-queue nodes inputs-updates)]
+            (recur priority-queue (assoc nodes node-id node))))))))
