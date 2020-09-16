@@ -250,49 +250,56 @@
          (into empty-priority-queue [[2 :b] [1 :c]]))))
 
 
-;; This data will be generated from the template, with a unique node-id and a correct compute-depth.
-(def compute-node-1
-  {;:compute-depth 1
-   :inputs {:first-name {:node-id 0 ; 0 is always the client db
-                         :path [:user :first-name]
-                         ; value to be used for new-state when diff is h/missing.
-                         :missing-value nil}
-            :last-name {:node-id 0
-                        :path [:user :last-name]
-                        :missing-value nil}}
-   :output {; Output format can be either :new-state or :diff, :diff by default.
-            :format :new-state}
-   :compute-fn (fn [node]
-                 (str (or (-> node :inputs-update :first-name :new-state)
-                          (-> node :inputs :first-name :state))
-                      " "
-                      (or (-> node :inputs-update :last-name :new-state)
-                          (-> node :inputs :last-name :state))))
+(deftest propagate-diff-test
+  (let [compute-node-1
+        {;:compute-depth 1
+         :inputs {:first-name {:node-id 0 ; 0 is always the client db
+                               :path [:user :first-name]
+                               ; value to be used for new-state when diff is h/missing.
+                               :missing-value nil}
+                  :last-name {:node-id 0
+                              :path [:user :last-name]
+                              :missing-value nil}}
+         :output {; Output format can be either :new-state or :diff, :diff by default.
+                  :format :new-state}
+         :compute-fn (fn [node]
+                       (str (or (-> node :inputs-update :first-name :new-state)
+                                (-> node :inputs :first-name :state))
+                            " "
+                            (or (-> node :inputs-update :last-name :new-state)
+                                (-> node :inputs :last-name :state))))
+         #__}
 
-   #__})
+        render-node-1
+        {:render-depth 1
+         :inputs {:full-name {:node-id 1
+                              :path []
+                              :missing-value nil}}
+         :output {:format :new-state}
+         ; will be changed later
+         :compute-fn (fn [node]
+                       [:div (-> node :inputs-update :full-name :new-state)])}
 
-(def render-node-1
-  {:render-depth 1
-   :inputs {:full-name {:node-id 1
-                        :path []
-                        :missing-value nil}}
-   :output {:format :new-state}
-   ; will be changed later
-   :compute-fn (fn [node]
-                 [:div (-> node :inputs-update :full-name :new-state)])})
+        full-name-graph
+        (-> initial-graph
+            (add-graph-node compute-node-1)
+            (add-graph-node render-node-1))]
 
-(def full-name-graph
-  (-> initial-graph
-      (add-graph-node compute-node-1)
-      (add-graph-node render-node-1)))
+    (is (= (-> full-name-graph
+               :nodes (get 2) :state)
+           nil))
 
-(comment
+    (is (= (-> (->> full-name-graph
+                 (propagate-diff (h/value {:user {:first-name "Bob", :last-name "Marley"}})))
+               :nodes (get 2) :state)
+           [:div "Bob Marley"]))
 
-  (->> full-name-graph
-       (propagate-diff (h/value {:user {:first-name "Bob", :last-name "Marley"}}))
-       (propagate-diff (h/map-update :user (h/map-assoc :first-name "Coco"))))
+    (is (= (-> (->> full-name-graph
+                 (propagate-diff (h/value {:user {:first-name "Bob", :last-name "Marley"}}))
+                 (propagate-diff (h/map-update :user (h/map-assoc :first-name "Coco"))))
+               :nodes (get 2) :state)
+           [:div "Coco Marley"]))))
 
-  #__)
 
 
 ;; -------------------------------------------------------------------------------------
@@ -318,12 +325,11 @@
  {:name "Strawberry" :price 17}]
 
 
-(defn inc-node [node-id item-index]
-  {:node-id node-id
-   :inputs [{:node-id 0
-             :path [:items item-index :price]}]
+(defn inc-node [input-node-id input-value-path]
+  {:inputs {:val {:node-id input-node-id
+                  :path input-value-path}}
    :compute-fn (fn [node]
-                 (h/value (-> node :inputs-update 0 :new-state inc)))})
+                 (h/value (-> node :inputs-update :val :new-state inc)))})
 
 ;; TODO:
 ;; - move the nodes into a :nodes sub hashmap.
