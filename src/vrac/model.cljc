@@ -125,6 +125,8 @@
                                  [:hashmap (h/map-of (h/ref 'clj-value) (h/ref 'clj-value))]
                                  [:val-wrap (h/list [:val-symb (h/val 'val)]
                                                     [:clj-value (h/ref 'clj-value)])])
+                                 ;[:unquote-splicing-wrap (h/list [:unquote-splicing-symb (h/val 'clojure.core/unquote-splicing)]
+                                 ;                                [:clj-value (h/ref 'clj-value)])])
                                  ;[:fn-call (h/ref 'html/fn-call)])
 
           'html/props (h/alt [:nil (h/val nil)]
@@ -141,24 +143,59 @@
                                        [:children (h/* (h/not-inlined (h/ref 'html/something)))])
                                 h/in-vector)
 
+          'html/component (-> (h/cat ; my-comp, foo/bar ..
+                                     [:component (-> (h/not-inlined (h/ref 'clj-value))
+                                                     (h/with-condition (h/fn (complement simple-keyword?))))]
+
+                                     ; optional props
+                                     [:props (h/? (h/ref 'html/props))]
+
+                                     [:children (h/* (h/not-inlined (h/ref 'html/something)))])
+                              h/in-vector)
+
           ;; In a context assumed to be html, represents something.
-          'html/something (h/alt [:html/dom-element (h/ref 'html/dom-element)]
+          'html/something (h/alt [:html/clj-value (h/ref 'html/clj-value)]
                                  ; will be converted into text or nil, (or html for debug logging).
-                                 [:html/clj-value (h/ref 'html/clj-value)])]
-                       ;[:component (h/ref 'component)]
+                                 [:html/dom-element (h/ref 'html/dom-element)]
+                                 [:html/component (h/ref 'html/component)])]
                        ;[:directive (h/ref 'directive)])]
     (h/ref 'html/something)))
 
-(m/describe template-model [:div "hello, " nil "world!"])
-(m/describe template-model [:div nil "hello, " nil "world!"])
-(m/describe template-model [:div {} {} "hello"])
-(m/describe template-model [:div {:id :theme-name
-                                  :style {:color "pink"}} "Green"])
-(m/describe template-model [:div {:id :theme-name
-                                  :class [:color "button"]
-                                  :style {:color "pink"}} "Green"])
-(m/describe template-model '[:div "debug info: " {:id user-id, :user user-name}])
-(m/describe template-model '[:div.debug-info nil {:id user-id, :user user-name}])
-(m/describe template-model '[:div.debug-info (val {:id user-id, :user user-name})])
-(m/describe template-model '[:div.debug-info (val [:a :b :c :d])])
-(m/describe template-model '[:div.debug-info (attrs my-attributes)])
+(comment
+  (m/describe template-model '[:my-ns/my-component "hello"])
+  (m/describe template-model '[my-component "hello"])
+  ;(m/describe template-model '[(if my-cond ::my-component ::other-comp) "hello"])
+  ;(m/describe template-model '[(if my-cond ::my-component my-alias/other-comp) "hello"])
+
+  ;; A component can have any identifier except unqualified keywords which are reserved for html elements.
+  (m/describe template-model '[true "This is not a pipe"])
+  (m/describe template-model '[false "This is a pipe"])
+  (m/describe template-model '[42 "This could be anything"])
+  (m/describe template-model '[foobar "hello"])
+  (m/describe template-model '[[:experiment 7] "hello"])
+
+  ;; Arguments passing
+  (m/describe template-model '[::my-component true false nil "foo"])           ;; any value can be passed, including nil
+  (m/describe template-model '[::my-component (val [:a :b]) (val [c d])])      ;; vector literals should be marked as values
+  ;(m/describe template-model '[::my-component (str "peace and " my-love-var)]) ;; any s-expression can be passed
+  ;(m/describe template-model '[::my-component :a :b ~@my-kw-sequence :z])      ;; ~@ slices an expression in the arg list
+
+  ;; Attributes applied on components
+  (m/describe template-model '[::my-component.foo {:class "bar"} arg1 arg2])    ;; my-component only has 2 args
+  (m/describe template-model '[::my-component (attrs my-attributes) arg1 arg2])) ;; my-component only has 2 args
+
+
+(comment
+  (m/describe template-model [:div "hello, " nil "world!"])
+  (m/describe template-model [:div nil "hello, " nil "world!"])
+  (m/describe template-model [:div {} {} "hello"])
+  (m/describe template-model [:div {:id :theme-name
+                                    :style {:color "pink"}} "Green"])
+  (m/describe template-model [:div {:id :theme-name
+                                    :class [:color "button"]
+                                    :style {:color "pink"}} "Green"])
+  (m/describe template-model '[:div "debug info: " {:id user-id, :user user-name}])
+  (m/describe template-model '[:div.debug-info nil {:id user-id, :user user-name}])
+  (m/describe template-model '[:div.debug-info (val {:id user-id, :user user-name})])
+  (m/describe template-model '[:div.debug-info (val [:a :b :c :d])])
+  (m/describe template-model '[:div.debug-info (attrs my-attributes)]))
