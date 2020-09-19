@@ -102,6 +102,30 @@
                                   [:args (h/* (h/not-inlined (h/ref 'clj-value)))])
                            (h/in-list))
 
+          'if (h/list [:if-symb (h/val 'if)]
+                      [:condition (h/ref 'clj-value)]
+                      [:then (h/ref 'clj-value)]
+                      [:else (h/ref 'clj-value)])
+
+          'when (h/list [:when-symb (h/val 'when)]
+                        [:condition (h/ref 'clj-value)]
+                        [:then (h/ref 'clj-value)])
+
+          'bindings (-> (h/* (h/cat [:symbol (h/fn simple-symbol?)]
+                                    [:clj-value (h/not-inlined (h/ref 'clj-value))]))
+                        h/in-vector)
+
+          'let (h/list [:let-symb (h/val 'let)]
+                       [:bindings (h/ref 'bindings)]
+                       [:body (h/ref 'clj-value)])
+
+          'for (h/list [:for-symb (h/val 'for)]
+                       [:bindings (h/ref 'bindings)]
+                       [:body (h/ref 'clj-value)])
+
+          'val-wrap (h/list [:val-symb (h/val 'val)]
+                            [:clj-value (h/ref 'clj-value)])
+
           'clj-value (h/alt [:nil (h/val nil)]
                             [:boolean (h/fn boolean?)]
                             [:number (h/fn number?)]
@@ -110,10 +134,15 @@
                             [:symbol (h/fn symbol?)]
                             [:vector (h/vector-of (h/ref 'clj-value))]
                             [:set (h/set-of (h/ref 'clj-value))]
-                            [:hashmap (h/map-of (h/ref 'clj-value) (h/ref 'clj-value))])
-                            ;[:val-wrap (h/ref 'val-wrap)]
+                            [:hashmap (h/map-of (h/ref 'clj-value) (h/ref 'clj-value))]
+                            [:if (h/ref 'if)]
+                            [:when (h/ref 'when)]
+                            [:let (h/ref 'let)]
+                            [:for (h/ref 'for)]
+                            [:val-wrap (h/ref 'val-wrap)])
                             ;[:fn-call (h/ref 'html/fn-call)])
 
+          ; Will be converted into text or nil, (or html for debug logging).
           'html/clj-value (h/alt [:nil (h/val nil)]
                                  [:boolean (h/fn boolean?)]
                                  [:number (h/fn number?)]
@@ -123,49 +152,107 @@
                                  ;[:vector (h/vector-of (h/ref 'clj-value))]
                                  [:set (h/set-of (h/ref 'clj-value))]
                                  [:hashmap (h/map-of (h/ref 'clj-value) (h/ref 'clj-value))]
-                                 [:val-wrap (h/list [:val-symb (h/val 'val)]
-                                                    [:clj-value (h/ref 'clj-value)])])
+                                 [:val-wrap (h/ref 'val-wrap)])
                                  ;[:unquote-splicing-wrap (h/list [:unquote-splicing-symb (h/val 'clojure.core/unquote-splicing)]
                                  ;                                [:clj-value (h/ref 'clj-value)])])
                                  ;[:fn-call (h/ref 'html/fn-call)])
+
+          'html/if (h/list [:if-symb (h/val 'if)]
+                           [:condition (h/ref 'clj-value)]
+                           [:then (h/ref 'html/something)]
+                           [:else (h/ref 'html/something)])
+
+          'html/when (h/list [:when-symb (h/val 'when)]
+                             [:condition (h/ref 'clj-value)]
+                             [:then (h/ref 'html/something)])
+
+          'html/let (h/list [:let-symb (h/val 'let)]
+                            [:bindings (h/ref 'bindings)]
+                            [:body (h/ref 'html/something)])
+
+          'html/for (h/list [:for-symb (h/val 'for)]
+                            [:bindings (h/ref 'bindings)]
+                            [:body (h/ref 'html/something)])
 
           'html/props (h/alt [:nil (h/val nil)]
                              [:hashmap (h/map-of (h/fn keyword?) (h/ref 'clj-value))]
                              [:attrs (h/list [:attrs-symb (h/val 'attrs)]
                                              [:clj-value (h/ref 'clj-value)])])
 
-          'html/dom-element (-> (h/cat ; div, h1 ..
-                                       [:type (h/fn simple-keyword?)]
-
-                                       ; optional props
-                                       [:props (h/? (h/ref 'html/props))]
-
+          ; div, h1 ..
+          'html/dom-element (-> (h/cat [:type (h/fn simple-keyword?)]
+                                       [:props (h/? (h/not-inlined (h/ref 'html/props)))]
                                        [:children (h/* (h/not-inlined (h/ref 'html/something)))])
                                 h/in-vector)
 
-          'html/component (-> (h/cat ; my-comp, foo/bar ..
-                                     [:component (-> (h/not-inlined (h/ref 'clj-value))
-                                                     (h/with-condition (h/fn (complement simple-keyword?))))]
-
-                                     ; optional props
-                                     [:props (h/? (h/ref 'html/props))]
-
+          ; my-comp, foo/bar ..
+          'html/component (-> (h/cat [:component (-> (h/ref 'clj-value)
+                                                     (h/with-condition (h/fn (complement simple-keyword?)))
+                                                     h/not-inlined)]
+                                     [:props (h/? (h/not-inlined (h/ref 'html/props)))]
                                      [:children (h/* (h/not-inlined (h/ref 'html/something)))])
                               h/in-vector)
 
           ;; In a context assumed to be html, represents something.
           'html/something (h/alt [:html/clj-value (h/ref 'html/clj-value)]
-                                 ; will be converted into text or nil, (or html for debug logging).
                                  [:html/dom-element (h/ref 'html/dom-element)]
-                                 [:html/component (h/ref 'html/component)])]
-                       ;[:directive (h/ref 'directive)])]
+                                 [:html/component (h/ref 'html/component)]
+                                 [:html/if (h/ref 'html/if)]
+                                 [:html/when (h/ref 'html/when)]
+                                 [:html/let (h/ref 'html/let)]
+                                 [:html/for (h/ref 'html/for)])]
     (h/ref 'html/something)))
 
+
 (comment
+
+  ;; html/if
+  (m/describe template-model '[:div (if condition [:h1 "big title"] [:h5 "small title"])])
+  (m/describe template-model '[:div (if condition "big title" "small title")])
+
+  ;; if
+  (m/describe template-model '[:div (val (if condition "big title" "small title"))])
+
+  ;; html/when
+  (m/describe template-model '[:div (when condition [:h1 "big title"])])
+  (m/describe template-model '[:div (when condition "big title")])
+
+  ;; when
+  (m/describe template-model '[:div (val (when condition "big title"))])
+
+  ;; html/let
+  (m/describe template-model '(let [a 1, b 2] [:div a b]))
+
+  ;; let
+  (m/describe template-model '(val (let [a 1, b 2] {a b})))
+
+  ;; html/for
+  (m/describe template-model '[:ul (for [a [1 2 3], b [:a :b :c]] [:li a b])])
+
+  ;; for
+  (m/describe template-model '(val (for [a [1 2 3], b [:a :b :c]] {a b})))
+
+
+  (m/describe template-model [:div "hello, " nil "world!"])
+  (m/describe template-model [:div nil "hello, " true "world!"])
+  (m/describe template-model [:div {} {} "hello"])
+  (m/describe template-model [:div {:id :theme-name
+                                    :style {:color "pink"}} "Green"])
+  (m/describe template-model [:div {:id :theme-name
+                                    :class [:color "button"]
+                                    :style {:color "pink"}} "Green"])
+  (m/describe template-model '[:div "debug info: " {:id user-id, :user user-name}])
+  (m/describe template-model '[:div.debug-info nil {:id user-id, :user user-name}])
+  (m/describe template-model '[:div.debug-info (val {:id user-id, :user user-name})])
+  (m/describe template-model '[:div.debug-info (val [:a :b :c :d])])
+  (m/describe template-model '[:div.debug-info (attrs my-attributes)])
+
+
+
   (m/describe template-model '[:my-ns/my-component "hello"])
   (m/describe template-model '[my-component "hello"])
-  ;(m/describe template-model '[(if my-cond ::my-component ::other-comp) "hello"])
-  ;(m/describe template-model '[(if my-cond ::my-component my-alias/other-comp) "hello"])
+  (m/describe template-model '[(if my-cond ::my-component ::other-comp) "hello"])
+  (m/describe template-model '[(if my-cond ::my-component my-alias/other-comp) "hello"])
 
   ;; A component can have any identifier except unqualified keywords which are reserved for html elements.
   (m/describe template-model '[true "This is not a pipe"])
@@ -184,18 +271,3 @@
   (m/describe template-model '[::my-component.foo {:class "bar"} arg1 arg2])    ;; my-component only has 2 args
   (m/describe template-model '[::my-component (attrs my-attributes) arg1 arg2])) ;; my-component only has 2 args
 
-
-(comment
-  (m/describe template-model [:div "hello, " nil "world!"])
-  (m/describe template-model [:div nil "hello, " nil "world!"])
-  (m/describe template-model [:div {} {} "hello"])
-  (m/describe template-model [:div {:id :theme-name
-                                    :style {:color "pink"}} "Green"])
-  (m/describe template-model [:div {:id :theme-name
-                                    :class [:color "button"]
-                                    :style {:color "pink"}} "Green"])
-  (m/describe template-model '[:div "debug info: " {:id user-id, :user user-name}])
-  (m/describe template-model '[:div.debug-info nil {:id user-id, :user user-name}])
-  (m/describe template-model '[:div.debug-info (val {:id user-id, :user user-name})])
-  (m/describe template-model '[:div.debug-info (val [:a :b :c :d])])
-  (m/describe template-model '[:div.debug-info (attrs my-attributes)]))
