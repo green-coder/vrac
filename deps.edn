@@ -1,5 +1,6 @@
 {:paths ["src"]
- :deps {minimallist        {:mvn/version "0.0.6"}
+ :deps {minimallist        {:git/url "https://github.com/green-coder/minimallist.git"
+                            :sha "1748c1b4ffc0d7b5010639b501b52146fab28ef3"}
         diffuse            {:mvn/version "0.0.5"}
         com.wsscode/pathom {:mvn/version "2.2.31"}
         camel-snake-kebab  {:mvn/version "0.4.1"}}
