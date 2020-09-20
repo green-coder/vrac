@@ -98,9 +98,16 @@
 ;; September 18th 2020's new model.
 
 (def template-model
-  (h/let [#_#_'fn-call (-> (h/cat [:fn 'clj-value]
-                                  [:args (h/* (h/not-inlined (h/ref 'clj-value)))])
-                           (h/in-list))
+  (h/let ['kw-deref (-> (h/cat [:keyword (h/fn keyword?)]
+                               [:value (h/not-inlined (h/ref 'clj-value))]
+                               [:default (h/? (h/not-inlined (h/ref 'clj-value)))])
+                        h/in-list)
+
+          'fn-call (-> (h/cat [:fn (-> (h/fn symbol?)
+                                       (h/with-condition (h/fn (complement #{'val 'attrb
+                                                                             'clojure.core/unquote-splicing}))))]
+                              [:args (h/* (h/not-inlined (h/ref 'clj-value)))])
+                       h/in-list)
 
           'if (h/list [:if-symb (h/val 'if)]
                       [:condition (h/ref 'clj-value)]
@@ -126,6 +133,9 @@
           'val-wrap (h/list [:val-symb (h/val 'val)]
                             [:clj-value (h/ref 'clj-value)])
 
+          'unquote-splicing-wrap (h/list [:unquote-splicing-symb (h/val 'clojure.core/unquote-splicing)]
+                                         [:clj-value (h/ref 'clj-value)])
+
           'clj-value (h/alt [:nil (h/val nil)]
                             [:boolean (h/fn boolean?)]
                             [:number (h/fn number?)]
@@ -139,8 +149,10 @@
                             [:when (h/ref 'when)]
                             [:let (h/ref 'let)]
                             [:for (h/ref 'for)]
-                            [:val-wrap (h/ref 'val-wrap)])
-                            ;[:fn-call (h/ref 'html/fn-call)])
+                            [:kw-deref (h/ref 'kw-deref)]
+                            [:val-wrap (h/ref 'val-wrap)]
+                            ;[:unquote-splicing-wrap (h/ref 'unquote-splicing-wrap)]
+                            [:fn-call (h/ref 'fn-call)])
 
           ; Will be converted into text or nil, (or html for debug logging).
           'html/clj-value (h/alt [:nil (h/val nil)]
@@ -152,10 +164,10 @@
                                  ;[:vector (h/vector-of (h/ref 'clj-value))]
                                  [:set (h/set-of (h/ref 'clj-value))]
                                  [:hashmap (h/map-of (h/ref 'clj-value) (h/ref 'clj-value))]
-                                 [:val-wrap (h/ref 'val-wrap)])
-                                 ;[:unquote-splicing-wrap (h/list [:unquote-splicing-symb (h/val 'clojure.core/unquote-splicing)]
-                                 ;                                [:clj-value (h/ref 'clj-value)])])
-                                 ;[:fn-call (h/ref 'html/fn-call)])
+                                 [:kw-deref (h/ref 'kw-deref)]
+                                 [:val-wrap (h/ref 'val-wrap)]
+                                 [:unquote-splicing-wrap (h/ref 'unquote-splicing-wrap)]
+                                 [:fn-call (h/ref 'fn-call)])
 
           'html/if (h/list [:if-symb (h/val 'if)]
                            [:condition (h/ref 'clj-value)]
@@ -186,9 +198,7 @@
                                 h/in-vector)
 
           ; my-comp, foo/bar ..
-          'html/component (-> (h/cat [:component (-> (h/ref 'clj-value)
-                                                     (h/with-condition (h/fn (complement simple-keyword?)))
-                                                     h/not-inlined)]
+          'html/component (-> (h/cat [:component (h/fn qualified-keyword?)]
                                      [:props (h/? (h/not-inlined (h/ref 'html/props)))]
                                      [:children (h/* (h/not-inlined (h/ref 'html/something)))])
                               h/in-vector)
@@ -202,7 +212,6 @@
                                  [:html/let (h/ref 'html/let)]
                                  [:html/for (h/ref 'html/for)])]
     (h/ref 'html/something)))
-
 
 (comment
 
@@ -247,27 +256,36 @@
   (m/describe template-model '[:div.debug-info (val [:a :b :c :d])])
   (m/describe template-model '[:div.debug-info (attrs my-attributes)])
 
-
-
+  ;; Including a component
   (m/describe template-model '[:my-ns/my-component "hello"])
-  (m/describe template-model '[my-component "hello"])
-  (m/describe template-model '[(if my-cond ::my-component ::other-comp) "hello"])
-  (m/describe template-model '[(if my-cond ::my-component my-alias/other-comp) "hello"])
 
+  ;; Deprecated construct - invalid
+  ;(m/describe template-model '[my-component "hello"])
+  ;(m/describe template-model '[(if my-cond ::my-component ::other-comp) "hello"])
+  ;(m/describe template-model '[(if my-cond ::my-component my-alias/other-comp) "hello"])
+
+  ;; Deprecated construct - invalid
   ;; A component can have any identifier except unqualified keywords which are reserved for html elements.
-  (m/describe template-model '[true "This is not a pipe"])
-  (m/describe template-model '[false "This is a pipe"])
-  (m/describe template-model '[42 "This could be anything"])
-  (m/describe template-model '[foobar "hello"])
-  (m/describe template-model '[[:experiment 7] "hello"])
+  ;(m/describe template-model '[true "This is not a pipe"])
+  ;(m/describe template-model '[false "This is a pipe"])
+  ;(m/describe template-model '[42 "This could be anything"])
+  ;(m/describe template-model '[foobar "hello"])
+  ;(m/describe template-model '[[:experiment 7] "hello"])
 
   ;; Arguments passing
   (m/describe template-model '[::my-component true false nil "foo"])           ;; any value can be passed, including nil
   (m/describe template-model '[::my-component (val [:a :b]) (val [c d])])      ;; vector literals should be marked as values
-  ;(m/describe template-model '[::my-component (str "peace and " my-love-var)]) ;; any s-expression can be passed
-  ;(m/describe template-model '[::my-component :a :b ~@my-kw-sequence :z])      ;; ~@ slices an expression in the arg list
+  (m/describe template-model '[::my-component (str "peace and " my-love-var)]) ;; any s-expression can be passed
+  (m/describe template-model '[::my-component :a :b ~@my-kw-sequence :z])      ;; ~@ slices an expression in the arg list
 
   ;; Attributes applied on components
   (m/describe template-model '[::my-component.foo {:class "bar"} arg1 arg2])    ;; my-component only has 2 args
-  (m/describe template-model '[::my-component (attrs my-attributes) arg1 arg2])) ;; my-component only has 2 args
+  (m/describe template-model '[::my-component (attrs my-attributes) arg1 arg2]) ;; my-component only has 2 args
 
+  ;; Function calls
+  (m/describe template-model '[::my-component (str "peace and " my-love-var)])
+  (m/describe template-model '(str "peace and " my-love-var))
+
+  ;; Keyword deref
+  (m/describe template-model '(:a global))
+  (m/describe template-model '(:a global 5)))
