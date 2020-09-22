@@ -135,23 +135,26 @@
                                  [:html/unquote-splicing-wrap (h/ref 'unquote-splicing-wrap)])]
     (h/ref 'html/something)))
 
-(defn v-pair? [x]
+(defn- v-pair? [x]
   (and (vector? x)
        (= 2 (count x))))
 
-(defn simpler-ast [tree]
+(defn- simpler-ast [tree]
   (if (v-pair? tree)
     (let [[key val] tree]
       (case key
+        ; Unwrap things - they were wrapped just for context clarification during parsing.
         :clj/val-wrap (:clj-value val)
         :html.props/attrs (:clj-value val)
-        :html/dom-element [key (update val :props (comp second first))]
-        :html/component [key (update val :props (comp second first))]
+
+        ; optional values h/?, [] / [x] -> nil / x
+        :html/dom-element [key (update val :props first)]
+        :html/component [key (update val :props first)]
         :clj/kw-deref [key (update val :default first)]
         tree))
     tree))
 
-(defn foo [template]
+(defn template->ast [template]
   (->> template
        (m/describe template-model)
        (w/postwalk simpler-ast)))
@@ -159,78 +162,78 @@
 (comment
 
   ;; html/if
-  (foo '[:div (if condition [:h1 "big title"] [:h5 "small title"])])
-  (foo '[:div (if condition "big title" "small title")])
+  (template->ast '[:div (if condition [:h1 "big title"] [:h5 "small title"])])
+  (template->ast '[:div (if condition "big title" "small title")])
 
   ;; if
-  (foo '[:div (val (if condition "big title" "small title"))])
+  (template->ast '[:div (val (if condition "big title" "small title"))])
 
   ;; html/when
-  (foo '[:div (when condition [:h1 "big title"])])
-  (foo '[:div (when condition "big title")])
+  (template->ast '[:div (when condition [:h1 "big title"])])
+  (template->ast '[:div (when condition "big title")])
 
   ;; when
-  (foo '[:div (val (when condition "big title"))])
+  (template->ast '[:div (val (when condition "big title"))])
 
   ;; html/let
-  (foo '(let [a 1, b 2] [:div a b]))
+  (template->ast '(let [a 1, b 2] [:div a b]))
 
   ;; let
-  (foo '(val (let [a 1, b 2] {a b})))
+  (template->ast '(val (let [a 1, b 2] {a b})))
 
   ;; html/for
-  (foo '[:ul (for [a [1 2 3], b [:a :b :c]] [:li a b])])
+  (template->ast '[:ul (for [a [1 2 3], b [:a :b :c]] [:li a b])])
 
   ;; for
-  (foo '(val (for [a [1 2 3], b [:a :b :c]] {a b})))
+  (template->ast '(val (for [a [1 2 3], b [:a :b :c]] {a b})))
 
 
-  (foo [:div "hello, " nil "world!"])
-  (foo [:div nil "hello, " true "world!"])
-  (foo [:div {} {} "hello"])
-  (foo [:div {:id :theme-name
-              :style {:color "pink"}} "Green"])
-  (foo [:div {:id :theme-name
-              :class [:color "button"]
-              :style {:color "pink"}} "Green"])
-  (foo '[:div "debug info: " {:id user-id, :user user-name}])
-  (foo '[:div.debug-info nil {:id user-id, :user user-name}])
-  (foo '[:div.debug-info (val {:id user-id, :user user-name})])
-  (foo '[:div.debug-info (val [:a :b :c :d])])
-  (foo '[:div.debug-info (attrs my-attributes)])
+  (template->ast [:div "hello, " nil "world!"])
+  (template->ast [:div nil "hello, " true "world!"])
+  (template->ast [:div {} {} "hello"])
+  (template->ast [:div {:id :theme-name
+                        :style {:color "pink"}} "Green"])
+  (template->ast [:div {:id :theme-name
+                        :class [:color "button"]
+                        :style {:color "pink"}} "Green"])
+  (template->ast '[:div "debug info: " {:id user-id, :user user-name}])
+  (template->ast '[:div.debug-info nil {:id user-id, :user user-name}])
+  (template->ast '[:div.debug-info (val {:id user-id, :user user-name})])
+  (template->ast '[:div.debug-info (val [:a :b :c :d])])
+  (template->ast '[:div.debug-info (attrs my-attributes)])
 
   ;; Including a component
-  (foo '[:my-ns/my-component "hello"])
+  (template->ast '[:my-ns/my-component "hello"])
 
   ;; Deprecated construct - invalid
-  ;(foo '[my-component "hello"])
-  ;(foo '[(if my-cond ::my-component ::other-comp) "hello"])
-  ;(foo '[(if my-cond ::my-component my-alias/other-comp) "hello"])
+  ;(template->ast '[my-component "hello"])
+  ;(template->ast '[(if my-cond ::my-component ::other-comp) "hello"])
+  ;(template->ast '[(if my-cond ::my-component my-alias/other-comp) "hello"])
 
   ;; Deprecated construct - invalid
   ;; A component can have any identifier except unqualified keywords which are reserved for html elements.
-  ;(foo '[true "This is not a pipe"])
-  ;(foo '[false "This is a pipe"])
-  ;(foo '[42 "This could be anything"])
-  ;(foo '[foobar "hello"])
-  ;(foo '[[:experiment 7] "hello"])
+  ;(template->ast '[true "This is not a pipe"])
+  ;(template->ast '[false "This is a pipe"])
+  ;(template->ast '[42 "This could be anything"])
+  ;(template->ast '[foobar "hello"])
+  ;(template->ast '[[:experiment 7] "hello"])
 
   ;; Arguments passing
-  (foo '[::my-component true false nil "foo"])           ;; any value can be passed, including nil
-  (foo '[::my-component (val [:a :b]) (val [c d])])      ;; vector literals should be marked as values
-  (foo '[::my-component (str "peace and " my-love-var)]) ;; any s-expression can be passed
-  (foo '[::my-component :a :b ~@my-kw-sequence :z])      ;; ~@ slices an expression in the arg list
+  (template->ast '[::my-component true false nil "foo"])           ;; any value can be passed, including nil
+  (template->ast '[::my-component (val [:a :b]) (val [c d])])      ;; vector literals should be marked as values
+  (template->ast '[::my-component (str "peace and " my-love-var)]) ;; any s-expression can be passed
+  (template->ast '[::my-component :a :b ~@my-kw-sequence :z])      ;; ~@ slices an expression in the arg list
 
   ;; Attributes applied on components
-  (foo '[::my-component.foo {:class "bar"} arg1 arg2])    ;; my-component only has 2 args
-  (foo '[::my-component (attrs my-attributes) arg1 arg2]) ;; my-component only has 2 args
+  (template->ast '[::my-component.foo {:class "bar"} arg1 arg2])    ;; my-component only has 2 args
+  (template->ast '[::my-component (attrs my-attributes) arg1 arg2]) ;; my-component only has 2 args
 
   ;; Function calls
-  (foo '[::my-component (str "peace and " my-love-var)])
-  (foo '(str "peace and " my-love-var))
+  (template->ast '[::my-component (str "peace and " my-love-var)])
+  (template->ast '(str "peace and " my-love-var))
 
   ;; Keyword deref
-  (foo '(:a global))
-  (foo '(:a global 5))
+  (template->ast '(:a global))
+  (template->ast '(:a global 5))
 
   #__)
