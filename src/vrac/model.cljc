@@ -16,7 +16,24 @@
 ;; What this model brings is a way to put a name on each part of the template
 ;; for templates which are valid. More validation has to be made manually.
 
-(def template-model
+
+;; The format which can be found in the fn, let, form, with,
+;; and many other forms which feature binding & destructuring.
+(def binding-destruct-model
+  (h/let ['param-binding (h/alt [:binding-symbol (h/fn symbol?)]
+                                [:destruct-vector (h/vector-of (h/ref 'param-binding))]
+                                ;; todo: cover the general syntax, this one is simplified
+                                [:destruct-map (h/map-of (h/ref 'param-binding)
+                                                         (h/fn keyword?))])]
+    (h/ref 'param-binding)))
+
+
+(def template-params-model
+  ; Variadic params are not supported at the moment.
+  (h/vector-of binding-destruct-model))
+
+
+(def template-body-model
   (h/let ['kw-deref (-> (h/cat [:keyword (h/fn keyword?)]
                                [:value (h/not-inlined (h/ref 'clj-value))]
                                [:default (h/? (h/not-inlined (h/ref 'clj-value)))])
@@ -135,9 +152,30 @@
                                  [:html/unquote-splicing-wrap (h/ref 'unquote-splicing-wrap)])]
     (h/ref 'html/something)))
 
+
+; Similar to a defn signature:
+; [name doc-string? attr-map? [params*] body]
+; [name doc-string? attr-map? ([params*] body)+]
+(def defc-args-model
+  (h/let ['attr-map (-> (h/map)
+                        (h/with-optional-entries [:id (h/fn qualified-keyword?)]
+                                                 [:name (h/fn string?)]))
+          ; Variadic params are not supported at the moment.
+          'param-bindings (h/vector-of (h/fn any?))
+          'body (h/fn any?)
+          'params-body-cat (h/cat [:params (h/not-inlined (h/ref 'param-bindings))]
+                                  [:body (h/not-inlined (h/ref 'body))])]
+    (h/cat [:name (h/fn simple-symbol?)]
+           [:doc-string (h/? (h/fn string?))]
+           [:attr-map (h/? (h/ref 'attr-map))]
+           [:definitions (h/alt [:single-arity (h/ref 'params-body-cat)]
+                                [:multi-arities (h/+ (h/in-list (h/ref 'params-body-cat)))])])))
+
+
 (defn- v-pair? [x]
   (and (vector? x)
        (= 2 (count x))))
+
 
 (defn- simpler-ast [tree]
   (if (v-pair? tree)
@@ -154,86 +192,102 @@
         tree))
     tree))
 
-(defn template->ast [template]
-  (->> template
-       (m/describe template-model)
+(defn template-params->ast [params]
+  (->> params
+       (m/describe template-params-model)
        (w/postwalk simpler-ast)))
+
+(defn template-body->ast [body]
+  (->> body
+       (m/describe template-body-model)
+       (w/postwalk simpler-ast)))
+
+
+;; TODO: The process of the parsed-template should be easier if the tree is
+;; enriched with all the information that one can grab.
+;; Consider using a functional zipper for multi-directional navigation and node enrichment.
+;; Consider using rules instead of functions when enriching the tree.
+
+
+;; TODO: Instead of visiting nodes in each different function and collecting the children,
+;; use a visitor or maybe a functional zipper.
+;; or maybe interface minimallist with specter.
 
 (comment
 
   ;; html/if
-  (template->ast '[:div (if condition [:h1 "big title"] [:h5 "small title"])])
-  (template->ast '[:div (if condition "big title" "small title")])
+  (template-body->ast '[:div (if condition [:h1 "big title"] [:h5 "small title"])])
+  (template-body->ast '[:div (if condition "big title" "small title")])
 
   ;; if
-  (template->ast '[:div (val (if condition "big title" "small title"))])
+  (template-body->ast '[:div (val (if condition "big title" "small title"))])
 
   ;; html/when
-  (template->ast '[:div (when condition [:h1 "big title"])])
-  (template->ast '[:div (when condition "big title")])
+  (template-body->ast '[:div (when condition [:h1 "big title"])])
+  (template-body->ast '[:div (when condition "big title")])
 
   ;; when
-  (template->ast '[:div (val (when condition "big title"))])
+  (template-body->ast '[:div (val (when condition "big title"))])
 
   ;; html/let
-  (template->ast '(let [a 1, b 2] [:div a b]))
+  (template-body->ast '(let [a 1, b 2] [:div a b]))
 
   ;; let
-  (template->ast '(val (let [a 1, b 2] {a b})))
+  (template-body->ast '(val (let [a 1, b 2] {a b})))
 
   ;; html/for
-  (template->ast '[:ul (for [a [1 2 3], b [:a :b :c]] [:li a b])])
+  (template-body->ast '[:ul (for [a [1 2 3], b [:a :b :c]] [:li a b])])
 
   ;; for
-  (template->ast '(val (for [a [1 2 3], b [:a :b :c]] {a b})))
+  (template-body->ast '(val (for [a [1 2 3], b [:a :b :c]] {a b})))
 
 
-  (template->ast [:div "hello, " nil "world!"])
-  (template->ast [:div nil "hello, " true "world!"])
-  (template->ast [:div {} {} "hello"])
-  (template->ast [:div {:id :theme-name
-                        :style {:color "pink"}} "Green"])
-  (template->ast [:div {:id :theme-name
-                        :class [:color "button"]
-                        :style {:color "pink"}} "Green"])
-  (template->ast '[:div "debug info: " {:id user-id, :user user-name}])
-  (template->ast '[:div.debug-info nil {:id user-id, :user user-name}])
-  (template->ast '[:div.debug-info (val {:id user-id, :user user-name})])
-  (template->ast '[:div.debug-info (val [:a :b :c :d])])
-  (template->ast '[:div.debug-info (attrs my-attributes)])
+  (template-body->ast [:div "hello, " nil "world!"])
+  (template-body->ast [:div nil "hello, " true "world!"])
+  (template-body->ast [:div {} {} "hello"])
+  (template-body->ast [:div {:id :theme-name
+                             :style {:color "pink"}} "Green"])
+  (template-body->ast [:div {:id :theme-name
+                             :class [:color "button"]
+                             :style {:color "pink"}} "Green"])
+  (template-body->ast '[:div "debug info: " {:id user-id, :user user-name}])
+  (template-body->ast '[:div.debug-info nil {:id user-id, :user user-name}])
+  (template-body->ast '[:div.debug-info (val {:id user-id, :user user-name})])
+  (template-body->ast '[:div.debug-info (val [:a :b :c :d])])
+  (template-body->ast '[:div.debug-info (attrs my-attributes)])
 
   ;; Including a component
-  (template->ast '[:my-ns/my-component "hello"])
+  (template-body->ast '[:my-ns/my-component "hello"])
 
   ;; Deprecated construct - invalid
-  ;(template->ast '[my-component "hello"])
-  ;(template->ast '[(if my-cond ::my-component ::other-comp) "hello"])
-  ;(template->ast '[(if my-cond ::my-component my-alias/other-comp) "hello"])
+  ;(template-body->ast '[my-component "hello"])
+  ;(template-body->ast '[(if my-cond ::my-component ::other-comp) "hello"])
+  ;(template-body->ast '[(if my-cond ::my-component my-alias/other-comp) "hello"])
 
   ;; Deprecated construct - invalid
   ;; A component can have any identifier except unqualified keywords which are reserved for html elements.
-  ;(template->ast '[true "This is not a pipe"])
-  ;(template->ast '[false "This is a pipe"])
-  ;(template->ast '[42 "This could be anything"])
-  ;(template->ast '[foobar "hello"])
-  ;(template->ast '[[:experiment 7] "hello"])
+  ;(template-body->ast '[true "This is not a pipe"])
+  ;(template-body->ast '[false "This is a pipe"])
+  ;(template-body->ast '[42 "This could be anything"])
+  ;(template-body->ast '[foobar "hello"])
+  ;(template-body->ast '[[:experiment 7] "hello"])
 
   ;; Arguments passing
-  (template->ast '[::my-component true false nil "foo"])           ;; any value can be passed, including nil
-  (template->ast '[::my-component (val [:a :b]) (val [c d])])      ;; vector literals should be marked as values
-  (template->ast '[::my-component (str "peace and " my-love-var)]) ;; any s-expression can be passed
-  (template->ast '[::my-component :a :b ~@my-kw-sequence :z])      ;; ~@ slices an expression in the arg list
+  (template-body->ast '[::my-component true false nil "foo"])           ;; any value can be passed, including nil
+  (template-body->ast '[::my-component (val [:a :b]) (val [c d])])      ;; vector literals should be marked as values
+  (template-body->ast '[::my-component (str "peace and " my-love-var)]) ;; any s-expression can be passed
+  (template-body->ast '[::my-component :a :b ~@my-kw-sequence :z])      ;; ~@ slices an expression in the arg list
 
   ;; Attributes applied on components
-  (template->ast '[::my-component.foo {:class "bar"} arg1 arg2])    ;; my-component only has 2 args
-  (template->ast '[::my-component (attrs my-attributes) arg1 arg2]) ;; my-component only has 2 args
+  (template-body->ast '[::my-component.foo {:class "bar"} arg1 arg2])    ;; my-component only has 2 args
+  (template-body->ast '[::my-component (attrs my-attributes) arg1 arg2]) ;; my-component only has 2 args
 
   ;; Function calls
-  (template->ast '[::my-component (str "peace and " my-love-var)])
-  (template->ast '(str "peace and " my-love-var))
+  (template-body->ast '[::my-component (str "peace and " my-love-var)])
+  (template-body->ast '(str "peace and " my-love-var))
 
   ;; Keyword deref
-  (template->ast '(:a global))
-  (template->ast '(:a global 5))
+  (template-body->ast '(:a global))
+  (template-body->ast '(:a global 5))
 
   #__)
