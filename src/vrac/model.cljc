@@ -41,7 +41,7 @@
 
           'fn-call (-> (h/cat [:fn-symb (-> (h/fn symbol?)
                                             (h/with-condition (h/fn (complement #{'if 'when 'let 'for
-                                                                                  'val 'attrs
+                                                                                  'local 'unique-id 'fnc 'val 'attrs
                                                                                   'clojure.core/unquote-splicing}))))]
                               [:args (h/* (h/not-inlined (h/ref 'clj-value)))])
                        h/in-list)
@@ -67,6 +67,17 @@
                        [:bindings (h/ref 'bindings)]
                        [:body (h/ref 'clj-value)])
 
+          'local (h/list (h/val 'local)
+                         [:initial-value (h/ref 'clj-value)])
+
+          'unique-id (-> (h/cat [:symbol (h/val 'unique-id)]
+                                [:prefix (h/? (h/fn string?))])
+                         h/in-list)
+
+          'fnc (h/list (h/val 'fnc)
+                       [:params template-params-model]
+                       [:body (h/ref 'html/something)])
+
           'val-wrap (h/list (h/val 'val)
                             [:clj-value (h/ref 'clj-value)])
 
@@ -83,8 +94,11 @@
                             [:clj/when (h/ref 'when)]
                             [:clj/let (h/ref 'let)]
                             [:clj/for (h/ref 'for)]
-                            [:clj/kw-deref (h/ref 'kw-deref)]
+                            [:clj/local (h/ref 'local)]
+                            [:clj/unique-id (h/ref 'unique-id)]
+                            [:clj/fnc (h/ref 'fnc)]
                             [:clj/val-wrap (h/ref 'val-wrap)]
+                            [:clj/kw-deref (h/ref 'kw-deref)]
                             [:clj/fn-call (h/ref 'fn-call)])
 
           ; Will be converted into text or nil, (or html for debug logging).
@@ -97,8 +111,11 @@
                                 ;[:clj/vector (h/vector-of (h/ref 'clj-value))]
                                 [:clj/set (h/set-of (h/ref 'clj-value))]
                                 [:clj/hashmap (h/map-of (h/ref 'clj-value) (h/ref 'clj-value))]
-                                [:clj/kw-deref (h/ref 'kw-deref)]
+                                [:clj/local (h/ref 'local)]
+                                [:clj/unique-id (h/ref 'unique-id)]
+                                [:clj/fnc (h/ref 'fnc)]
                                 [:clj/val-wrap (h/ref 'val-wrap)]
+                                [:clj/kw-deref (h/ref 'kw-deref)]
                                 [:clj/fn-call (h/ref 'fn-call)])
 
           'html/if (h/list (h/val 'if)
