@@ -20,12 +20,15 @@
 ;; The format which can be found in the fn, let, form, with,
 ;; and many other forms which feature binding & destructuring.
 (def binding-destruct-model
-  (h/let ['param-binding (h/alt [:binding-symbol (h/fn symbol?)]
-                                [:destruct-vector (h/vector-of (h/ref 'param-binding))]
-                                ;; todo: cover the general syntax, this one is simplified
-                                [:destruct-map (h/map-of (h/ref 'param-binding)
-                                                         (h/fn keyword?))])]
-    (h/ref 'param-binding)))
+  (h/let ['binding (h/alt [:destruct/symbol (h/fn simple-symbol?)]
+                          [:destruct/vector (h/vector-of (h/ref 'binding))]
+                          [:destruct/map (h/map-of (h/alt [:destruct.map/keyword (h/vector [:binding (h/ref 'binding)]
+                                                                                           [:keyword (h/fn keyword?)])]
+                                                          [:destruct.map/keys (h/vector (h/val :keys)
+                                                                                        [:symbols (h/vector-of (h/fn symbol?))])]
+                                                          [:destruct.map/as (h/vector (h/val :as)
+                                                                                      [:symbol (h/fn simple-symbol?)])]))])]
+    (h/ref 'binding)))
 
 
 (def template-params-model
@@ -89,7 +92,7 @@
                             [:clj/symbol (h/fn symbol?)]
                             [:clj/vector (h/vector-of (h/ref 'clj-value))]
                             [:clj/set (h/set-of (h/ref 'clj-value))]
-                            [:clj/hashmap (h/map-of (h/ref 'clj-value) (h/ref 'clj-value))]
+                            [:clj/hashmap (h/map-of (h/vector (h/ref 'clj-value) (h/ref 'clj-value)))]
                             [:clj/if (h/ref 'if)]
                             [:clj/when (h/ref 'when)]
                             [:clj/let (h/ref 'let)]
@@ -110,7 +113,7 @@
                                 [:clj/symbol (h/fn symbol?)]
                                 ;[:clj/vector (h/vector-of (h/ref 'clj-value))]
                                 [:clj/set (h/set-of (h/ref 'clj-value))]
-                                [:clj/hashmap (h/map-of (h/ref 'clj-value) (h/ref 'clj-value))]
+                                [:clj/hashmap (h/map-of (h/vector (h/ref 'clj-value) (h/ref 'clj-value)))]
                                 [:clj/local (h/ref 'local)]
                                 [:clj/unique-id (h/ref 'unique-id)]
                                 [:clj/fnc (h/ref 'fnc)]
@@ -143,7 +146,7 @@
                               [:clj-value (h/ref 'clj-value)])
 
           'html/props (h/alt [:html.props/nil (h/val nil)]
-                             [:html.props/hashmap (h/map-of (h/fn keyword?) (h/ref 'clj-value))]
+                             [:html.props/hashmap (h/map-of (h/vector (h/fn keyword?) (h/ref 'clj-value)))]
                              [:html.props/attrs (h/ref 'attrs-wrap)])
 
           ; div, h1 ..
