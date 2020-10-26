@@ -1,7 +1,7 @@
 (ns vrac.core
   (:require [clojure.set :as set]
             [minimallist.core :as m]
-            [vrac.model :as vm]
+            [vrac.model.template :as vt]
             [vrac.util :refer [map-vals tag-id-class]])
   #?(:cljs (:require-macros vrac.core)))
 
@@ -9,9 +9,9 @@
 ;; A macro for writing the templates more like a function.
 ;; Note: in the end, the component is still just a map of data.
 (defmacro defc [& params]
-  (let [desc (m/describe vm/defc-args-model params)]
+  (let [desc (m/describe vt/defc-args-model params)]
     (when (= desc :invalid)
-      (throw (ex-info (str "Invalid template: " #_(m/explain-str vm/defc-args-model params))
+      (throw (ex-info (str "Invalid template: " #_(m/explain-str vt/defc-args-model params))
                       {:params params})))
 
     `(def ~(:name desc)
@@ -26,8 +26,8 @@
                              (map (fn [{:keys [params body]}]
                                     [(count params) {:params params
                                                      :body body
-                                                     :params-ast (vm/template-params->ast params)
-                                                     :body-ast (vm/template-body->ast body)}]))
+                                                     :params-ast (vt/template-params->ast params)
+                                                     :body-ast (vt/template-body->ast body)}]))
                              (case arity-type
                               :single-arity [defs]
                               :multi-arities defs)))})))

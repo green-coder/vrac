@@ -1,4 +1,4 @@
-(ns vrac.model
+(ns vrac.model.template
   (:require [clojure.walk :as w]
             [minimallist.core :as m]
             [minimallist.helper :as h]))

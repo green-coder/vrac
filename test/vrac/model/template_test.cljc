@@ -1,14 +1,14 @@
-(ns vrac.model-test
+(ns vrac.model.template-test
   (:require #?(:clj  [clojure.test :refer [deftest testing is are]]
                :cljs [cljs.test :refer [deftest testing is are] :include-macros true])
-            [vrac.model :as vm]
+            [vrac.model.template :as vt]
             [minimallist.core :as m]
             [minimallist.helper :as h]))
 
-;(def valuable-model  (h/let vm/model-definitions (h/ref 'valuable)))
-;(def props-model     (h/let vm/model-definitions (h/ref 'props)))
-;(def bindings-model  (h/let vm/model-definitions (h/ref 'bindings)))
-;(def directive-model (h/let vm/model-definitions (h/ref 'directive)))
+;(def valuable-model  (h/let vt/model-definitions (h/ref 'valuable)))
+;(def props-model     (h/let vt/model-definitions (h/ref 'props)))
+;(def bindings-model  (h/let vt/model-definitions (h/ref 'bindings)))
+;(def directive-model (h/let vt/model-definitions (h/ref 'directive)))
 ;
 ;(deftest template-model-test
 ;  (are [x]
