@@ -24,7 +24,8 @@
                           [:destruct/vector (h/vector-of (h/ref 'binding))]
                           [:destruct/map (h/map-of (h/alt [:destruct.map/keyword (h/vector [:binding (h/ref 'binding)]
                                                                                            [:keyword (h/fn keyword?)])]
-                                                          [:destruct.map/keys (h/vector (h/val :keys)
+                                                          [:destruct.map/keys (h/vector [:keys-kw (-> (h/fn keyword?)
+                                                                                                      (h/with-condition (h/fn (comp #{"keys"} name))))]
                                                                                         [:symbols (h/vector-of (h/fn symbol?))])]
                                                           [:destruct.map/as (h/vector (h/val :as)
                                                                                       [:symbol (h/fn simple-symbol?)])]))])]
