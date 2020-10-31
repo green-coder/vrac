@@ -21,12 +21,19 @@
 ;; and many other forms which feature binding & destructuring.
 (def binding-destruct-model
   (h/let ['binding (h/alt [:destruct/symbol (h/fn simple-symbol?)]
-                          [:destruct/vector (h/vector-of (h/ref 'binding))]
+                          [:destruct/vector (-> (h/cat [:destruct.vector/elements (h/* (h/not-inlined (h/ref 'binding)))]
+                                                       [:destruct.vector/rest-syntax (h/? (h/cat (h/val '&)
+                                                                                                 [:destruct.vector/rest (h/not-inlined (h/ref 'binding))]))])
+                                                (h/in-vector))]
                           [:destruct/map (h/map-of (h/alt [:destruct.map/keyword (h/vector [:binding (h/ref 'binding)]
                                                                                            [:keyword (h/fn keyword?)])]
                                                           [:destruct.map/keys (h/vector [:keys-kw (-> (h/fn keyword?)
                                                                                                       (h/with-condition (h/fn (comp #{"keys"} name))))]
                                                                                         [:symbols (h/vector-of (h/fn symbol?))])]
+                                                          [:destruct.map/or (h/vector (h/val :or)
+                                                                                      [:defaults (h/map-of (h/vector [:symbol (h/fn simple-symbol?)]
+                                                                                                                     ; TODO: fix this reference
+                                                                                                                     [:value (h/ref 'node)]))])]
                                                           [:destruct.map/as (h/vector (h/val :as)
                                                                                       [:symbol (h/fn simple-symbol?)])]))])]
     (h/ref 'binding)))
