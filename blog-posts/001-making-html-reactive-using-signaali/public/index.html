@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Making HTML reactive using Signaali</title>
+  </head>
+  <body>
+    <script src="/js/main.js" defer></script>
+
+    <main>
+      <h1>Reactive HTML without a framework</h1>
+      <p>This demonstrates how to use Signaali to manipulate the DOM reactively.</p>
+
+      <h2>Reactive counter</h2>
+      <div>
+        Counter value: <span id="counter-element">n/a</span>
+        <div>
+          <button id="inc-counter-button">Increment</button>
+          <button id="reset-counter-button">Reset</button>
+        </div>
+      </div>
+
+      <h2>Lazy effects</h2>
+      <div>
+        The effects are lazy, the user decides when to re-run them.
+        Click the button to update the DOM.
+        <div>
+          <button id="run-effects-button">Run effects</button>
+        </div>
+      </div>
+    </main>
+  </body>
+</html>
