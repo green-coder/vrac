@@ -1,0 +1,14 @@
+node_modules/
+package.json.lock
+package-lock.json
+yarn.lock
+out/
+public/js/
+
+.idea/
+.cpcache/
+.nrepl-port
+.shadow-cljs/
+.cljs_node_repl/
+
+*.iml
