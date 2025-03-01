@@ -122,11 +122,7 @@
                                   ;; Convert the children into elements.
                                   child-elements (into []
                                                        (comp (remove nil?)
-                                                             ;; Inline elements when child is a seq.
-                                                             (mapcat (fn [child]
-                                                                      (if (seq? child)
-                                                                          child
-                                                                          [child])))
+                                                             inline-seq-children-xf
                                                              (mapcat to-dom-elements))
                                                        children)]
                               ;; Set the attributes on the created element.
@@ -138,11 +134,11 @@
                               [element])
 
                             (reactive-node? vcup)
-                            (let [^js element (js/document.createTextNode "")
+                            (let [^js/Text text-node (js/document.createTextNode "")
                                   effect (sr/create-effect (fn []
-                                                             (set! (.-textContent element) @vcup)))]
+                                                             (set! (.-textContent text-node) @vcup)))]
                               (swap! all-effects conj effect)
-                              [element])
+                              [text-node])
 
                             :else
                             [(js/document.createTextNode vcup)]))
