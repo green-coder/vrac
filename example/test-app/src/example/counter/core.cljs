@@ -9,7 +9,7 @@
         ($ :button {:on-click #(swap! counter-state inc)} "Increment")
         ($ :button {:on-click #(reset! counter-state 0)} "Reset"))))
 
-(defn counter-section []
+(defn counter-root []
   ($ :section
      ($ :h2 "Reactive counters")
      (for [i (range 3)]

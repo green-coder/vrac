@@ -3,13 +3,54 @@
             [signaali.reactive :as sr]))
 
 (defrecord VcupNode [node-type children])
+(defrecord ReactiveFragment [reactive-node])
+(defrecord AttributeEffect [reactive-attributes])
+(defrecord ComponentResult [effects elements])
 
-(defn $ [node-type & children]
-  (VcupNode. node-type children))
+;; ----------------------------------------------
+
+(defn- dom-node? [x]
+  (instance? js/Node x))
+
+(defn- vcup-fragment? [x]
+  (and (instance? VcupNode x)
+       (= (:node-type x) :<>)))
+
+(defn- vcup-element? [x]
+  (and (instance? VcupNode x)
+       (not= (:node-type x) :<>)
+       (simple-keyword? (:node-type x))))
 
 (defn- component-invocation? [x]
   (and (instance? VcupNode x)
        (fn? (:node-type x))))
+
+(defn- reactive-fragment? [x]
+  (instance? ReactiveFragment x))
+
+(defn- attribute-effect? [x]
+  (instance? AttributeEffect x))
+
+(defn- component-result? [x]
+  (instance? ComponentResult x))
+
+(defn- reactive-node? [x]
+  (instance? sr/ReactiveNode x))
+
+(defn- attribute-map? [x]
+  (and (map? x)
+       (not (record? x))))
+
+(defn- attributes? [x]
+  (or (attribute-map? x)
+      (attribute-effect? x)))
+
+;; ----------------------------------------------
+
+;;(defn component-result [& sub-results]
+;;  (apply merge-with into sub-results))
+
+;; ----------------------------------------------
 
 (defn- set-element-attribute [^js/Element element attribute-name attribute-value]
   (cond
@@ -22,20 +63,55 @@
     :else
     :to-be-defined-in-next-articles))
 
+;; ----------------------------------------------
+
+(def ^:private inline-seq-children-xf
+  (mapcat (fn [child] ;; Inline when child is a seq.
+            (if (seq? child)
+              child
+              [child]))))
+
+(defn $ [node-type & children]
+  (VcupNode. node-type children))
+
 (defn process-vcup [vcup]
   (let [all-effects (atom [])
         to-dom-elements (fn to-dom-elements [vcup]
                           (cond
+                            (nil? vcup)
+                            []
+
+                            (dom-node? vcup)
+                            [vcup]
+
+                            ;; Reactive fragment (i.e. if-fragment and for-fragment)
+                            (reactive-fragment? vcup)
+                            [vcup]
+
+                            (attributes? vcup)
+                            (throw (js/Error. "Attributes cannot be at the root of a scope."))
+
+                            ;; Component result (when the component is directly invoked)
+                            (component-result? vcup)
+                            (let [{:keys [effects elements]} vcup]
+                              (swap! all-effects into effects)
+                              elements)
+
                             ;; Component invocation
                             (component-invocation? vcup)
                             (let [{component-fn :node-type
                                    args         :children} vcup]
                               (recur (apply component-fn args)))
 
-                            (string? vcup)
-                            [(js/document.createTextNode vcup)]
+                            ;; Hiccup fragment
+                            (vcup-fragment? vcup)
+                            (into []
+                                  (comp inline-seq-children-xf
+                                        (mapcat to-dom-elements))
+                                  (:children vcup))
 
-                            (instance? VcupNode vcup)
+                            ;; ($ :div ,,,)
+                            (vcup-element? vcup)
                             (let [^js/Element element (js/document.createElement (name (:node-type vcup)))
                                   [attributes children] (let [children (:children vcup)
                                                               x (first children)]
@@ -61,18 +137,18 @@
                                 (-> element (.appendChild child-element)))
                               [element])
 
-                            (instance? sr/ReactiveNode vcup)
-                            (let [element (js/document.createTextNode "")
+                            (reactive-node? vcup)
+                            (let [^js element (js/document.createTextNode "")
                                   effect (sr/create-effect (fn []
                                                              (set! (.-textContent element) @vcup)))]
                               (swap! all-effects conj effect)
                               [element])
 
                             :else
-                            :to-be-defined-in-next-articles))
+                            [(js/document.createTextNode vcup)]))
+
         elements (to-dom-elements vcup)]
-    {:effects @all-effects
-     :elements elements}))
+    (ComponentResult. @all-effects elements)))
 
 (defn- re-run-stale-effectful-nodes-at-next-frame []
   (js/requestAnimationFrame (fn []

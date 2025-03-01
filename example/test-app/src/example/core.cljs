@@ -1,10 +1,12 @@
 (ns example.core
-  (:require [example.counter.core :refer [counter-section]]
+  (:require [example.counter.core :refer [counter-root]]
+            [example.vcup.core :refer [vcup-root]]
             [vrac.web :as vw :refer [$]]))
 
 (defn root-component []
   ($ :main
-     ($ counter-section)))
+     ($ vcup-root)
+     ($ counter-root)))
 
 ;; Shadow-CLJS hooks: start & reload the app
 
