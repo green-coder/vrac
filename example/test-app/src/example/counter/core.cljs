@@ -14,4 +14,4 @@
      ($ :h2 "Reactive counters")
      (for [i (range 3)]
        (let [counter-state (sr/create-state (* i 100))]
-         (counter-component counter-state)))))
+         ($ counter-component counter-state)))))

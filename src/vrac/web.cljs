@@ -2,10 +2,14 @@
   (:require [clojure.string :as str]
             [signaali.reactive :as sr]))
 
-(defrecord VcupNode [element-tag children])
+(defrecord VcupNode [node-type children])
 
-(defn $ [element-tag & children]
-  (VcupNode. element-tag children))
+(defn $ [node-type & children]
+  (VcupNode. node-type children))
+
+(defn- component-invocation? [x]
+  (and (instance? VcupNode x)
+       (fn? (:node-type x))))
 
 (defn- set-element-attribute [^js/Element element attribute-name attribute-value]
   (cond
@@ -22,11 +26,17 @@
   (let [all-effects (atom [])
         to-dom-elements (fn to-dom-elements [vcup]
                           (cond
+                            ;; Component invocation
+                            (component-invocation? vcup)
+                            (let [{component-fn :node-type
+                                   args         :children} vcup]
+                              (recur (apply component-fn args)))
+
                             (string? vcup)
                             [(js/document.createTextNode vcup)]
 
                             (instance? VcupNode vcup)
-                            (let [^js/Element element (js/document.createElement (name (:element-tag vcup)))
+                            (let [^js/Element element (js/document.createElement (name (:node-type vcup)))
                                   [attributes children] (let [children (:children vcup)
                                                               x (first children)]
                                                           (if (and (map? x)
