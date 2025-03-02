@@ -5,7 +5,7 @@
 ;; Updating the state makes the DOM update
 (defn counter-component [counter-state]
   ($ :div
-     "Counter value:" counter-state
+     "Counter value: " counter-state
      ($ :div
         ($ :button {:on-click #(swap! counter-state inc)} "Increment")
         ($ :button {:on-click #(reset! counter-state 0)} "Reset"))))

@@ -1,4 +1,5 @@
 (ns vrac.web
+  #?(:cljs (:require-macros [vrac.web :refer [if-fragment]]))
   (:require [clojure.string :as str]
             #?(:cljs [goog.object :as gobj])
             [signaali.reactive :as sr]))
@@ -37,7 +38,7 @@
   (instance? ComponentResult x))
 
 (defn- reactive-node? [x]
-  (instance? sr/ReactiveNode x))
+  (instance? signaali.reactive.ReactiveNode x))
 
 (defn- attribute-map? [x]
   (and (map? x)
@@ -266,6 +267,47 @@
 
            elements (to-dom-elements vcup)]
        (ComponentResult. @all-effects elements))))
+
+;; ----------------------------------------------
+
+(defn scope-effect
+  "This effects manages a static collection of effect's lifecycle so that they are
+   first-run and disposed when this effect is run and cleaned up."
+  ([owned-effects]
+   (scope-effect owned-effects nil))
+  ([owned-effects options]
+   (when-some [owned-effects (seq (remove nil? owned-effects))]
+     (let [scope (sr/create-effect (fn []
+                                     (run! sr/run-if-needed owned-effects)
+                                     (sr/on-clean-up (fn []
+                                                       (run! sr/dispose owned-effects))))
+                                   options)]
+       (doseq [owned-effect owned-effects]
+         (sr/run-after owned-effect scope))
+       scope))))
+
+(defn if-fragment* [branch-fn]
+  #?(:cljs
+     (ReactiveFragment.
+       (sr/create-derived (fn []
+                            (let [{:keys [effects elements]} (process-vcup (branch-fn))]
+                              ;; SURPRISING: should the scope-effect be *inside* this function??
+                              (some-> (scope-effect effects)
+                                      deref)
+                              elements))
+                          {:metadata {:name "if-fragment"}}))))
+
+(defmacro if-fragment [reactive-condition then-hiccup else-hiccup]
+  `(let [reactive-condition# ~reactive-condition
+         boolean-condition# (sr/create-memo (fn []
+                                              (boolean @reactive-condition#)))
+         branch-fn# (fn []
+                      (if @boolean-condition#
+                        ~then-hiccup
+                        ~else-hiccup))]
+     (if-fragment* branch-fn#)))
+
+;; ----------------------------------------------
 
 #?(:cljs
    (defn- re-run-stale-effectful-nodes-at-next-frame []
