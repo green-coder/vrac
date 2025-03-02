@@ -1,5 +1,6 @@
 (ns vrac.web
   (:require [clojure.string :as str]
+            [goog.object :as gobj]
             [signaali.reactive :as sr]))
 
 (defrecord VcupNode [node-type children])
@@ -52,16 +53,119 @@
 
 ;; ----------------------------------------------
 
-(defn- set-element-attribute [^js/Element element attribute-name attribute-value]
+(defn- ensure-coll [x]
+  (cond-> x (not (coll? x)) vector))
+
+(defn- parse-element-tag [s]
+  (reduce (fn [acc part]
+            (case (subs part 0 1)
+              "." (update acc :classes conj (subs part 1))
+              "#" (assoc acc :id (subs part 1))
+              (assoc acc :element-tag part)))
+          {:element-tag "div"
+           :id nil
+           :classes []}
+          (re-seq #"[#.]?[^#.]+" s)))
+
+(defn- style->str [x]
   (cond
-    ;; Event listener
-    (str/starts-with? attribute-name "on-")
-    (.addEventListener element
-                       (-> attribute-name (subs (count "on-")))
-                       attribute-value)
+    (map? x) (->> x
+                  (map (fn [[k v]] (str (name k) ": " v)))
+                  (str/join "; ")
+                  (not-empty))
+    :else x))
+
+(defn- class->str [x]
+  (when (some? x)
+    (->> x
+         (ensure-coll)
+         (flatten)
+         (remove nil?)
+         (map name)
+         (str/join " ")
+         (not-empty))))
+
+(defn- compose-attribute-maps [base new]
+  (let [style (into (or (:style base) {}) (:style new))
+        class (into (or (:class base) []) (some-> (:class new) ensure-coll))]
+    (-> base
+        (into (dissoc new :style :class))
+        (cond-> (seq style) (assoc :style style))
+        (cond-> (seq class) (assoc :class class)))))
+
+;; ----------------------------------------------
+
+(defn- set-element-attribute [^js/Element element attribute-kw attribute-value]
+  (cond
+    ;; TODO: see if we could use `classList` on the element
+    (= attribute-kw :class)
+    (-> element (gobj/set "className" (class->str attribute-value)))
+
+    (= attribute-kw :style)
+    (-> element (gobj/set "style" (style->str attribute-value)))
 
     :else
-    :to-be-defined-in-next-articles))
+    (let [attribute-name (name attribute-kw)]
+      (if (str/starts-with? attribute-name "on-")
+        ;; Add an event listener
+        (-> element (.addEventListener (-> attribute-name
+                                           (subs (count "on-"))
+                                           str/lower-case)
+                                       attribute-value))
+        ;; Set a general element attribute
+        (let [attribute-value (when-not (false? attribute-value) attribute-value)]
+          (-> element (gobj/set attribute-name attribute-value)))))))
+
+(defn- unset-element-attribute [^js/Element element attribute-kw attribute-value]
+  ;; TODO: We might not need to unset all the attributes all the time.
+  (cond
+    (= attribute-kw :class)
+    (-> element (.removeAttribute "className"))
+
+    (= attribute-kw :style)
+    (-> element (.removeAttribute "style"))
+
+    :else
+    (let [attribute-name (name attribute-kw)]
+      (if (str/starts-with? attribute-name "on-")
+        ;; Event listener
+        (-> element (.removeEventListener (-> attribute-name
+                                              (subs (count "on-"))
+                                              str/lower-case)
+                                          attribute-value))
+        (-> element (gobj/set attribute-name nil))))))
+
+(defn- dynamic-attributes-effect [^js/Element element attrs]
+  (let [attrs (->> attrs
+                   ;; Combine the consecutive attribute-maps together, and
+                   ;; unwrap the reactive-attributes in AttributeEffect values.
+                   (into []
+                         (comp
+                           (partition-by attribute-effect?)
+                           (mapcat (fn [attribute-group]
+                                     (if (attribute-map? (first attribute-group))
+                                       [(reduce compose-attribute-maps {} attribute-group)]
+                                       (mapv :reactive-attributes attribute-group)))))))]
+    (sr/create-effect (fn []
+                        (let [attributes (transduce (map deref) compose-attribute-maps {} attrs)]
+                          (doseq [[attribute-kw attribute-value] attributes]
+                            (set-element-attribute element attribute-kw attribute-value))
+                          (sr/on-clean-up (fn []
+                                            (doseq [[attribute-kw attribute-value] attributes]
+                                              (unset-element-attribute element attribute-kw attribute-value)))))))))
+
+(defn dynamic-children-effect
+  "Dynamically update the DOM node so that its children keep representing the elements array.
+   The elements are either js/Element or a reactive node whose value is a sequence of js/Element."
+  [^js/Element parent-element elements]
+  (sr/create-effect (fn []
+                      (let [new-children (make-array 0)]
+                        (doseq [element elements]
+                          (if (reactive-fragment? element)
+                            (doseq [sub-element @(:reactive-node element)]
+                              (.push new-children sub-element))
+                            (.push new-children element)))
+                        (-> parent-element .-replaceChildren (.apply parent-element new-children))))))
 
 ;; ----------------------------------------------
 
@@ -103,7 +207,7 @@
                                    args         :children} vcup]
                               (recur (apply component-fn args)))
 
-                            ;; Hiccup fragment
+                            ;; Vcup fragment
                             (vcup-fragment? vcup)
                             (into []
                                   (comp inline-seq-children-xf
@@ -112,25 +216,36 @@
 
                             ;; ($ :div ,,,)
                             (vcup-element? vcup)
-                            (let [^js/Element element (js/document.createElement (name (:node-type vcup)))
-                                  [attributes children] (let [children (:children vcup)
-                                                              x (first children)]
-                                                          (if (and (map? x)
-                                                                   (not (record? x))) ; because map? returns true on records
-                                                            [x (next children)]
-                                                            [nil children]))
+                            (let [{:keys [element-tag id classes]} (parse-element-tag (name (:node-type vcup)))
+                                  ^js/Element element (js/document.createElement element-tag)
+                                  children (:children vcup)
+
+                                  ;; Collect all the attributes.
+                                  attributes (cons (cond-> {}
+                                                           (some? id) (assoc :id id)
+                                                           (seq classes) (assoc :class classes))
+                                                   (filterv attributes? children))
+
                                   ;; Convert the children into elements.
                                   child-elements (into []
-                                                       (comp (remove nil?)
+                                                       (comp (remove attributes?)
                                                              inline-seq-children-xf
                                                              (mapcat to-dom-elements))
                                                        children)]
-                              ;; Set the attributes on the created element.
-                              (doseq [[attribute-name attribute-value] attributes]
-                               (set-element-attribute element (name attribute-name) attribute-value))
+                              ;; Set the element's attributes
+                              (if (every? attribute-map? attributes)
+                                (let [composed-attribute-maps (reduce compose-attribute-maps {} attributes)]
+                                  (doseq [[attribute-kw attribute-value] composed-attribute-maps]
+                                    (set-element-attribute element attribute-kw attribute-value)))
+                                (swap! all-effects conj (dynamic-attributes-effect element attributes)))
+
                               ;; Set the element's children
-                              (doseq [child-element child-elements]
-                                (-> element (.appendChild child-element)))
+                              (if (every? dom-node? child-elements)
+                                (doseq [child-element child-elements]
+                                  (-> element (.appendChild child-element)))
+                                (swap! all-effects conj (dynamic-children-effect element child-elements)))
+
+                              ;; Result
                               [element])
 
                             (reactive-node? vcup)
