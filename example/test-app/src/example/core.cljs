@@ -2,7 +2,15 @@
   (:require [example.reactive-fragment.core :refer [reactive-fragment-root]]
             [example.reactive-data.core :refer [reactive-data-root]]
             [example.vcup.core :refer [vcup-root]]
+            [signaali.reactive :as sr]
             [vrac.web :as vw :refer [$]]))
+
+(defn- debug-prn [reactive-node event-type]
+  (when-some [name (-> reactive-node meta :name)]
+    (prn name event-type)))
+
+;; Print the debug info in the Browser's console.
+;;(set! sr/*notify-lifecycle-event* debug-prn)
 
 (defn root-component []
   ($ :main
