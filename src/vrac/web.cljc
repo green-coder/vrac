@@ -290,7 +290,6 @@
          (sr/run-after owned-effect scope))
        scope))))
 
-;; TODO: would `reactive-fragment` be a better name?
 (defn if-fragment* [vcup-fn]
   #?(:cljs
      (ReactiveFragment.
@@ -312,6 +311,56 @@
                       ~then-vcup-expr
                       ~else-vcup-expr))]
      (if-fragment* vcup-fn#)))
+
+(defn- indexed-fragment [reactive-matched-index-or-nil
+                         clause-index->clause-vcup
+                         default-clause]
+  (ReactiveFragment.
+    (sr/create-derived (fn []
+                         (let [matched-index @reactive-matched-index-or-nil
+                               vcup-clause (cond
+                                             (some? matched-index)
+                                             (-> matched-index clause-index->clause-vcup)
+
+                                             (= default-clause ::undefined)
+                                             (throw (js/Error. "Missing default clause in indexed-fragment."))
+
+                                             :else
+                                             default-clause)
+                               {:keys [effects elements]} (process-vcup vcup-clause)]
+                           (some-> (scope-effect effects)
+                                   deref)
+                           elements))
+                       {:metadata {:name "index-fragment"}})))
+
+(defn case-fragment* [reactive-expression
+                      clause-value->clause-index
+                      clause-index->clause-vcup
+                      default-clause]
+  (let [reactive-matched-index-or-nil (sr/create-memo (fn [] (-> @reactive-expression clause-value->clause-index)))]
+    (indexed-fragment reactive-matched-index-or-nil
+                      clause-index->clause-vcup
+                      default-clause)))
+
+(defmacro case-fragment [reactive-expression & clauses]
+  (let [[even-number-of-exprs default-clause] (if (even? (count clauses))
+                                                [clauses ::undefined]
+                                                [(butlast clauses) (last clauses)])
+        clauses (partitionv 2 even-number-of-exprs)
+        clause-value->clause-index (into {}
+                                         (comp (map-indexed (fn [index [matching-value _clause]]
+                                                              (if (seq? matching-value)
+                                                                (->> matching-value
+                                                                     (mapv (fn [matching-value-item]
+                                                                             [matching-value-item index])))
+                                                                [[matching-value index]])))
+                                               cat)
+                                         clauses)
+        clause-index->clause-vcup (mapv second clauses)]
+    `(case-fragment* ~reactive-expression
+                     ~clause-value->clause-index
+                     ~clause-index->clause-vcup
+                     ~default-clause)))
 
 ;; ----------------------------------------------
 
