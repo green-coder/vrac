@@ -1,5 +1,7 @@
 (ns vrac.web
-  #?(:cljs (:require-macros [vrac.web :refer [if-fragment]]))
+  #?(:cljs (:require-macros [vrac.web :refer [if-fragment
+                                              case-fragment
+                                              cond-fragment]]))
   (:require [clojure.string :as str]
             #?(:cljs [goog.object :as gobj])
             [signaali.reactive :as sr]))
@@ -315,52 +317,73 @@
 (defn- indexed-fragment [reactive-matched-index-or-nil
                          clause-index->clause-vcup
                          default-clause]
-  (ReactiveFragment.
-    (sr/create-derived (fn []
-                         (let [matched-index @reactive-matched-index-or-nil
-                               vcup-clause (cond
-                                             (some? matched-index)
-                                             (-> matched-index clause-index->clause-vcup)
+  #?(:cljs
+     (ReactiveFragment.
+       (sr/create-derived (fn []
+                            (let [matched-index @reactive-matched-index-or-nil
+                                  vcup-clause (cond
+                                                (some? matched-index)
+                                                (-> matched-index clause-index->clause-vcup)
 
-                                             (= default-clause ::undefined)
-                                             (throw (js/Error. "Missing default clause in indexed-fragment."))
+                                                (= default-clause ::undefined)
+                                                (throw (js/Error. "Missing default clause in indexed-fragment."))
 
-                                             :else
-                                             default-clause)
-                               {:keys [effects elements]} (process-vcup vcup-clause)]
-                           (some-> (scope-effect effects)
-                                   deref)
-                           elements))
-                       {:metadata {:name "index-fragment"}})))
+                                                :else
+                                                default-clause)
+                                  {:keys [effects elements]} (process-vcup vcup-clause)]
+                              (some-> (scope-effect effects)
+                                      deref)
+                              elements))
+                          {:metadata {:name "index-fragment"}}))))
 
-(defn case-fragment* [reactive-expression
+(defn case-fragment* [reactive-expression-fn
                       clause-value->clause-index
                       clause-index->clause-vcup
                       default-clause]
-  (let [reactive-matched-index-or-nil (sr/create-memo (fn [] (-> @reactive-expression clause-value->clause-index)))]
+  (let [reactive-matched-index-or-nil (sr/create-memo (fn [] (-> (reactive-expression-fn) clause-value->clause-index)))]
     (indexed-fragment reactive-matched-index-or-nil
                       clause-index->clause-vcup
                       default-clause)))
 
-(defmacro case-fragment [reactive-expression & clauses]
+(defmacro case-fragment [value-expr & clauses]
   (let [[even-number-of-exprs default-clause] (if (even? (count clauses))
                                                 [clauses ::undefined]
                                                 [(butlast clauses) (last clauses)])
         clauses (partitionv 2 even-number-of-exprs)
         clause-value->clause-index (into {}
-                                         (comp (map-indexed (fn [index [matching-value _clause]]
-                                                              (if (seq? matching-value)
-                                                                (->> matching-value
-                                                                     (mapv (fn [matching-value-item]
-                                                                             [matching-value-item index])))
-                                                                [[matching-value index]])))
+                                         (comp (map-indexed (fn [index [clause-value _clause-vcup]]
+                                                              (if (seq? clause-value)
+                                                                (->> clause-value
+                                                                     (mapv (fn [clause-value-item]
+                                                                             [clause-value-item index])))
+                                                                [[clause-value index]])))
                                                cat)
                                          clauses)
         clause-index->clause-vcup (mapv second clauses)]
-    `(case-fragment* ~reactive-expression
+    `(case-fragment* (fn [] ~value-expr)
                      ~clause-value->clause-index
                      ~clause-index->clause-vcup
                      ~default-clause)))
+
+(defn cond-fragment* [reactive-index-fn
+                      clause-index->clause-vcup]
+  (indexed-fragment (sr/create-memo reactive-index-fn)
+                    clause-index->clause-vcup
+                    nil))
+
+(defmacro cond-fragment [& clauses]
+  ;; TODO: find how to display a nice error in the user's face using Shadow-cljs's visual messages.
+  (assert (even? (count clauses)) "cond-fragment requires an even number of forms")
+  (let [clauses (partitionv 2 clauses)
+        clause-index->clause-vcup (mapv second clauses)]
+    `(cond-fragment* (fn []
+                       (cond
+                         ~@(into []
+                                 (comp (map-indexed (fn [index [clause-condition _clause-vcup]]
+                                                      [`~clause-condition index]))
+                                       cat)
+                                 clauses)))
+                     ~clause-index->clause-vcup)))
 
 ;; ----------------------------------------------
 

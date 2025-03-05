@@ -26,17 +26,32 @@
     ($ :article
        ($ :h3 "Case fragment")
        ($ :button {:on-click #(reset! current-route :route/homepage)} "Home")
-       ($ :button {:on-click #(reset! current-route :route/blog)} "Blog")
-       ($ :button {:on-click #(reset! current-route :route/about)} "About")
+       ($ :button {:on-click #(reset! current-route :route/blog)}     "Blog")
+       ($ :button {:on-click #(reset! current-route :route/about)}    "About")
        ($ :button {:on-click #(reset! current-route :route/bookmark)} "Non-existing route")
-       (vw/case-fragment current-route
+       (vw/case-fragment @current-route
           :route/homepage ($ :div "This is the homepage.")
-          :route/blog ($ :div "This is the blog.")
-          :route/about ($ :div "This is the about page.")
+          :route/blog     ($ :div "This is the blog.")
+          :route/about    ($ :div "This is the about page.")
           ($ :div "This is the 'not found' page, for any other route.")))))
+
+(defn- cond-fragment-component []
+  (let [current-route (sr/create-state :route/homepage)]
+    ($ :article
+       ($ :h3 "Cond fragment")
+       ($ :button {:on-click #(reset! current-route :route/homepage)} "Home")
+       ($ :button {:on-click #(reset! current-route :route/blog)}     "Blog")
+       ($ :button {:on-click #(reset! current-route :route/about)}    "About")
+       ($ :button {:on-click #(reset! current-route :route/bookmark)} "Non-existing route")
+       (vw/cond-fragment
+         (= @current-route :route/homepage) ($ :div "This is the homepage.")
+         (= @current-route :route/blog)     ($ :div "This is the blog.")
+         (= @current-route :route/about)    ($ :div "This is the about page.")
+         :else ($ :div "This is the 'not found' page, for any other route.")))))
 
 (defn reactive-fragment-root []
   ($ :div
      ($ if-fragment-component)
      ($ case-fragment-component)
+     ($ cond-fragment-component)
      ,))
