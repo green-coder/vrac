@@ -270,6 +270,10 @@
 
 ;; ----------------------------------------------
 
+;; Q: Why was it an effect in the first place?
+;; A: It is an effect because it owns effects, not computations.
+;;    The effect of the scope-effect is to trigger those effects when it is run,
+;;    which makes it effectful, so it needs to be an effect too.
 (defn scope-effect
   "This effects manages a static collection of effect's lifecycle so that they are
    first-run and disposed when this effect is run and cleaned up."
@@ -286,26 +290,28 @@
          (sr/run-after owned-effect scope))
        scope))))
 
-(defn if-fragment* [branch-fn]
+;; TODO: would `reactive-fragment` be a better name?
+(defn if-fragment* [vcup-fn]
   #?(:cljs
      (ReactiveFragment.
        (sr/create-derived (fn []
-                            (let [{:keys [effects elements]} (process-vcup (branch-fn))]
-                              ;; SURPRISING: should the scope-effect be *inside* this function??
+                            (let [{:keys [effects elements]} (process-vcup (vcup-fn))]
+                              ;; scope-effect is inside the ReactiveFragment's effect because
+                              ;; we want its lifetime to depend on the `(boolean if-cond)` value.
                               (some-> (scope-effect effects)
                                       deref)
                               elements))
-                          {:metadata {:name "if-fragment"}}))))
+                          {:metadata {:name "active-if-branch-vcup"}}))))
 
-(defmacro if-fragment [reactive-condition then-hiccup else-hiccup]
+(defmacro if-fragment [reactive-condition then-vcup-expr else-vcup-expr]
   `(let [reactive-condition# ~reactive-condition
          boolean-condition# (sr/create-memo (fn []
                                               (boolean @reactive-condition#)))
-         branch-fn# (fn []
-                      (if @boolean-condition#
-                        ~then-hiccup
-                        ~else-hiccup))]
-     (if-fragment* branch-fn#)))
+         vcup-fn# (fn []
+                    (if @boolean-condition#
+                      ~then-vcup-expr
+                      ~else-vcup-expr))]
+     (if-fragment* vcup-fn#)))
 
 ;; ----------------------------------------------
 
