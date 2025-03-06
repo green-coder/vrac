@@ -141,6 +141,12 @@
                                              attribute-value))
            (-> element (gobj/set attribute-name nil)))))))
 
+(defn- deref+ [x]
+  (cond
+    (instance? signaali.reactive.ReactiveNode x) @x
+    (fn? x) (x)
+    :else x))
+
 #?(:cljs
    (defn- dynamic-attributes-effect [^js/Element element attrs]
      (let [attrs (->> attrs
@@ -154,7 +160,7 @@
                                           [(reduce compose-attribute-maps {} attribute-group)]
                                           (mapv :reactive-attributes attribute-group)))))))]
        (sr/create-effect (fn []
-                           (let [attributes (transduce (map deref) compose-attribute-maps {} attrs)]
+                           (let [attributes (transduce (map deref+) compose-attribute-maps {} attrs)]
                              (doseq [[attribute-kw attribute-value] attributes]
                                (set-element-attribute element attribute-kw attribute-value))
                              (sr/on-clean-up (fn []
@@ -269,6 +275,11 @@
 
            elements (to-dom-elements vcup)]
        (ComponentResult. @all-effects elements))))
+
+;; ----------------------------------------------
+
+(defn attributes-effect [reactive-attributes]
+  (AttributeEffect. reactive-attributes))
 
 ;; ----------------------------------------------
 
