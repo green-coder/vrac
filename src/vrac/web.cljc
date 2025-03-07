@@ -172,6 +172,10 @@
      "Dynamically update the DOM node so that its children keep representing the elements array.
    The elements are either js/Element or a reactive node whose value is a sequence of js/Element."
      [^js/Element parent-element elements]
+     ;; TODO: This algorithm could be improved to only replace children where it is needed.
+     ;;       Would it be faster? less CPU-intensive?
+     ;;       maybe different algorithms depending on the size?
+     ;;       measurements needed.
      (sr/create-effect (fn []
                          (let [new-children (make-array 0)]
                            (doseq [element elements]
@@ -321,10 +325,10 @@
                               elements))
                           {:metadata {:name "active-if-branch-vcup"}}))))
 
-(defmacro if-fragment [reactive-condition then-vcup-expr else-vcup-expr]
-  `(let [reactive-condition# ~reactive-condition
+(defmacro if-fragment [reactive+-condition then-vcup-expr else-vcup-expr]
+  `(let [reactive+-condition# ~reactive+-condition
          boolean-condition# (sr/create-memo (fn []
-                                              (boolean @reactive-condition#)))
+                                              (boolean (deref+ reactive+-condition#))))
          vcup-fn# (fn []
                     (if @boolean-condition#
                       ~then-vcup-expr
@@ -353,16 +357,17 @@
                               elements))
                           {:metadata {:name "index-fragment"}}))))
 
-(defn case-fragment* [reactive-expression-fn
+(defn case-fragment* [reactive+-value-expr
                       clause-value->clause-index
                       clause-index->clause-vcup
                       default-clause]
-  (let [reactive-matched-index-or-nil (sr/create-memo (fn [] (-> (reactive-expression-fn) clause-value->clause-index)))]
+  (let [reactive-matched-index-or-nil (sr/create-memo (fn [] (-> (deref+ reactive+-value-expr)
+                                                                 clause-value->clause-index)))]
     (indexed-fragment reactive-matched-index-or-nil
                       clause-index->clause-vcup
                       default-clause)))
 
-(defmacro case-fragment [value-expr & clauses]
+(defmacro case-fragment [reactive+-value-expr & clauses]
   (let [[even-number-of-exprs default-clause] (if (even? (count clauses))
                                                 [clauses ::undefined]
                                                 [(butlast clauses) (last clauses)])
@@ -377,7 +382,7 @@
                                                cat)
                                          clauses)
         clause-index->clause-vcup (mapv second clauses)]
-    `(case-fragment* (fn [] ~value-expr)
+    `(case-fragment* ~reactive+-value-expr
                      ~clause-value->clause-index
                      ~clause-index->clause-vcup
                      ~default-clause)))
@@ -404,13 +409,13 @@
 
 #?(:cljs
    (defn for-fragment
-     ([reactive-coll-fn item-component]
-      (for-fragment reactive-coll-fn identity item-component))
-     ([reactive-coll-fn key-fn item-component]
+     ([reactive+-coll item-component]
+      (for-fragment reactive+-coll identity item-component))
+     ([reactive+-coll key-fn item-component]
       (let [item-cache-atom (atom {})] ;; mapping: item -> [scope elements]
         (ReactiveFragment.
           (sr/create-derived (fn []
-                               (let [coll (reactive-coll-fn)
+                               (let [coll (deref+ reactive+-coll)
 
                                      ;; Update the cache:
                                      ;; - only keep the current item keys,
