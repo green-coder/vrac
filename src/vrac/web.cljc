@@ -408,9 +408,9 @@
                      ~clause-index->clause-vcup)))
 
 #?(:cljs
-   (defn for-fragment
+   (defn for-fragment*
      ([reactive+-coll item-component]
-      (for-fragment reactive+-coll identity item-component))
+      (for-fragment* reactive+-coll identity item-component))
      ([reactive+-coll key-fn item-component]
       (let [item-cache-atom (atom {})] ;; mapping: item -> [scope elements]
         (ReactiveFragment.

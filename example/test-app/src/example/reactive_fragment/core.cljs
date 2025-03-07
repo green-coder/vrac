@@ -70,10 +70,39 @@
                "Add")))
 
        ($ :div
-          (vw/for-fragment (fn [] (:persons @state))
-                           :id
-                           (fn [{:keys [id name]}]
-                             ($ :div "[" id "] " name)))))))
+          (vw/for-fragment* (fn [] (:persons @state))    ;; coll-fn
+                            :id                          ;; key-fn
+                            (fn [{:keys [id name]}]      ;; item-component
+                              ($ :div "[" id "] " name)))
+          #_ ;; ideally
+          (vw/for-fragment [{:keys [id name]} (:persons @state)]
+             ^{:key id} ($ :div "[" id "] " name))
+
+          #_ ;; nice to have: supports the Clojure for syntax
+          (vw/for-fragment [person (:persons @state)
+                            :let [{:keys [id name]} person]
+                            :when (even? id)
+                            :while (< id 10)]
+             ^{:key id} ($ :div "[" id "] " name))
+          #_ ;; That would translate to this:
+          (vw/for-fragment* (fn []
+                              (for [person (:persons @state)
+                                    :let [{:keys [id name]} person]
+                                    :when (even? id)
+                                    :while (< id 10)]
+                                ;; Collects everything which is used in the body of the `for`,
+                                ;; either for the key-fn or the item-component
+                                {:id id
+                                 :name name}))
+                            ;; Collects everything used in the key expression, here only `id`.
+                            (fn [{:keys [id]}]
+                              id)
+                            ;; Collects everything used in the item, here `id` and `name`.
+                            (fn [{:keys [id name]}]
+                              ($ :div "[" id "] " name)))
+
+          ;; Idea: write some unit tests for the for-fragment macro
+          ,))))
 
 (defn reactive-fragment-root []
   ($ :div
