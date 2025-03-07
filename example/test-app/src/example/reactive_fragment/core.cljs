@@ -49,9 +49,34 @@
          (= @current-route :route/about)    ($ :div "This is the about page.")
          :else ($ :div "This is the 'not found' page, for any other route.")))))
 
+(defn- for-fragment-component []
+  (let [persons (sr/create-state [{:id 0 :name "Alice"}
+                                  {:id 1 :name "Barbara"}
+                                  {:id 2 :name "Cedric"}])]
+    ($ :article
+       ($ :h3 "For fragment")
+
+       (let [new-person-name (sr/create-state "Louise")]
+         ($ :div
+            ($ :input
+               (vw/attributes-effect (fn [] {:value @new-person-name}))
+               {:on-change (fn [event]
+                             (reset! new-person-name (-> event .-target .-value)))})
+            ($ :button {:on-click (fn []
+                                    (swap! persons conj {:id (count @persons)
+                                                         :name @new-person-name})
+                                    (reset! new-person-name ""))}
+               "Add")))
+
+       ($ :div
+          (vw/for-fragment (fn [] @persons) :id
+             (fn [{:keys [id name]}]
+               ($ :div "[" id "] " name)))))))
+
 (defn reactive-fragment-root []
   ($ :div
      ($ if-fragment-component)
      ($ case-fragment-component)
      ($ cond-fragment-component)
+     ($ for-fragment-component)
      ,))

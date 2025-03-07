@@ -278,6 +278,12 @@
 
 ;; ----------------------------------------------
 
+(defn use-effect
+  ([run-fn]
+   (use-effect run-fn nil))
+  ([run-fn options]
+   (ComponentResult. [(sr/create-effect run-fn options)] nil)))
+
 (defn attributes-effect [reactive-attributes]
   (AttributeEffect. reactive-attributes))
 
@@ -395,6 +401,44 @@
                                        cat)
                                  clauses)))
                      ~clause-index->clause-vcup)))
+
+#?(:cljs
+   (defn for-fragment
+     ([reactive-coll-fn item-component]
+      (for-fragment reactive-coll-fn identity item-component))
+     ([reactive-coll-fn key-fn item-component]
+      (let [item-cache-atom (atom {})] ;; mapping: item -> [scope elements]
+        (ReactiveFragment.
+          (sr/create-derived (fn []
+                               (let [coll (reactive-coll-fn)
+
+                                     ;; Update the cache:
+                                     ;; - only keep the current item keys,
+                                     ;; - compute values for things not already cached.
+                                     old-item-cache @item-cache-atom
+                                     new-item-cache (into {}
+                                                          (map (fn [item]
+                                                                 (let [k (key-fn item)]
+                                                                   [k
+                                                                    (if (contains? old-item-cache k)
+                                                                      (get old-item-cache k)
+                                                                      (let [{:keys [effects elements]} (process-vcup ($ item-component item))]
+                                                                        [(scope-effect effects) elements]))])))
+                                                          coll)]
+                                 (reset! item-cache-atom new-item-cache)
+
+                                 ;; Return the aggregated elements
+                                 (into []
+                                       (mapcat (fn [item]
+                                                 (let [[scope elements] (get new-item-cache (key-fn item))]
+                                                   ;; Makes this signal depend on the scope.
+                                                   (some-> scope
+                                                           deref)
+
+                                                   ;; Return the elements
+                                                   elements)))
+                                       coll)))
+                             {:metadata {:name "for-fragment"}}))))))
 
 ;; ----------------------------------------------
 
