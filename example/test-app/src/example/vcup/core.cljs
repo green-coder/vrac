@@ -1,7 +1,7 @@
 (ns example.vcup.core
   (:require [vrac.web :as vw :refer [$]]))
 
-(defn- text-node-component []
+(defn- text-node-article []
   ($ :article
      ($ :h2 "Text nodes")
 
@@ -31,14 +31,14 @@
 
      ,))
 
-(defn element-component []
+(defn element-article []
   ($ :article
      ($ :h2 "Vcup elements with funny names")
      ($ :span#id1.class1.class2 {:class [:class3 :class4]} :span#id1.class1.class2)
      ($ :#id2.class3 :#id2.class3)
      ($ :.class4 :.class4)))
 
-(defn fragment-component []
+(defn fragment-article []
   ($ :article
      ($ :h2 "Fragments")
      ($ :<>
@@ -55,7 +55,7 @@
            nil)
         ($ :<>))))
 
-(defn component-with-arguments [a b c]
+(defn component-with-arguments-article [a b c]
    ($ :article
       ($ :h2 "Component with arguments")
       ($ :pre
@@ -64,7 +64,7 @@
 
 (defn vcup-root []
   ($ :div
-     ($ text-node-component)
-     ($ element-component)
-     ($ fragment-component)
-     ($ component-with-arguments 100 20 3)))
+     ($ text-node-article)
+     ($ element-article)
+     ($ fragment-article)
+     ($ component-with-arguments-article 100 20 3)))
