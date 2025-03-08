@@ -1,5 +1,6 @@
 (ns example.core
-  (:require [example.reactive-fragment.core :refer [reactive-fragment-root]]
+  (:require [example.context.core :refer [context-root]]
+            [example.reactive-fragment.core :refer [reactive-fragment-root]]
             [example.reactive-data.core :refer [reactive-data-root]]
             [example.vcup.core :refer [vcup-root]]
             [signaali.reactive :as sr]
@@ -17,6 +18,7 @@
      ($ vcup-root)
      ($ reactive-data-root)
      ($ reactive-fragment-root)
+     ($ context-root)
      ,))
 
 ;; Shadow-CLJS hooks: start & reload the app
