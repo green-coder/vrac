@@ -394,7 +394,6 @@
                     nil))
 
 (defmacro cond-fragment [& clauses]
-  ;; TODO: find how to display a nice error in the user's face using Shadow-cljs's visual messages.
   (assert (even? (count clauses)) "cond-fragment requires an even number of forms")
   (let [clauses (partitionv 2 clauses)
         clause-index->clause-vcup (mapv second clauses)]
@@ -447,7 +446,7 @@
 
 ;; ----------------------------------------------
 
-(def ^:dynamic *context*)
+(def ^:private ^:dynamic *context*)
 
 (defn get-context []
   *context*)

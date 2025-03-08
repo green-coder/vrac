@@ -14,7 +14,7 @@
      ($ :h3 "Booleans")
      false " " true
 
-     ;; TODO: we want this to work
+     ;; Because it could be mistaken with the element's attributes, this shall not work.
      ;;($ :h3 "Maps")
      ;;{:a 1
      ;; :b 2}
