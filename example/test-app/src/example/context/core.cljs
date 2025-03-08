@@ -26,10 +26,29 @@
 
        ($ :div
           ($ :strong "Warning: ")
-          "This sample won't work if we call the inner components using "
+          "This won't work if we call the inner components using "
           ($ :code "($ display-diy-context ,,,)")))))
+
+(defn- display-built-in-context [label]
+  ($ :div label ": " (vw/get-context)))
+
+(defn- builtin-context-article []
+  (let [root-context (sr/create-signal {:a 10})
+        counter (sr/create-signal 0)]
+    (vw/with-context root-context
+      ($ :article
+         ($ :h3 "Built-in context")
+         ($ :button {:on-click #(swap! counter inc)} "counter = " counter)
+         ($ display-built-in-context "global context")
+         (vw/with-context-update (fn [parent-context]
+                                   (-> @parent-context
+                                       (assoc :counter @counter)
+                                       (update :a + @counter)))
+           ($ display-built-in-context "local context"))
+         ($ display-built-in-context "back to the global context")))))
 
 (defn context-root []
   ($ :div
      ($ diy-context-article)
+     ($ builtin-context-article)
      ,))

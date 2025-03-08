@@ -447,6 +447,22 @@
 
 ;; ----------------------------------------------
 
+(def ^:dynamic *context*)
+
+(defn get-context []
+  *context*)
+
+(defmacro with-context [new-context vcup]
+   `(binding [*context* ~new-context]
+      (process-vcup ~vcup)))
+
+(defmacro with-context-update [context-fn vcup]
+  `(let [parent-context# *context*
+         new-context# (sr/create-derived (fn [] (~context-fn parent-context#)))]
+     (with-context new-context# ~vcup)))
+
+;; ----------------------------------------------
+
 #?(:cljs
    (defn- re-run-stale-effectful-nodes-at-next-frame []
      (js/requestAnimationFrame (fn []
