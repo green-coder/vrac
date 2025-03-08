@@ -61,7 +61,7 @@
                {:on-input (fn [event]
                             (reset! new-person-name (-> event .-target .-value)))})
             ($ :button {:on-click (fn []
-                                    (swap! state update :person
+                                    (swap! state update :persons
                                            (fn [persons]
                                              (-> persons
                                                  (conj {:id (count persons)
