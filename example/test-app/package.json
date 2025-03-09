@@ -1,5 +1,5 @@
 {
-  "name": "vrac-test-app",
+  "name": "test-app",
   "private": true,
   "scripts": {
     "start": "npx shadow-cljs watch :app",

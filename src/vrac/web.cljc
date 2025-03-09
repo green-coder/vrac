@@ -120,7 +120,9 @@
                                           attribute-value))
            ;; Set a general element attribute
            (let [attribute-value (when-not (false? attribute-value) attribute-value)]
-             (-> element (gobj/set attribute-name attribute-value))))))))
+             ;; TODO: which one should I use? it depends?
+             ;;(-> element (gobj/set attribute-name attribute-value))
+             (-> element (.setAttribute attribute-name attribute-value))))))))
 
 #?(:cljs
    (defn- unset-element-attribute [^js/Element element attribute-kw attribute-value]
@@ -140,7 +142,9 @@
                                                  (subs (count "on-"))
                                                  str/lower-case)
                                              attribute-value))
-           (-> element (gobj/set attribute-name nil)))))))
+           ;; TODO: which one should I use? it depends?
+           ;;(-> element (gobj/set attribute-name nil))
+           (-> element (.removeAttribute attribute-name nil)))))))
 
 (defn- deref+ [x]
   (cond
@@ -187,6 +191,11 @@
                            (-> parent-element .-replaceChildren (.apply parent-element new-children)))))))
 
 ;; ----------------------------------------------
+
+(defn html-text-to-dom [html-text]
+  (let [^js/Element element (js/document.createElement "div")]
+    (set! (.-innerHTML element) html-text)
+    (.-firstElementChild element)))
 
 (def ^:private inline-seq-children-xf
   (mapcat (fn [child] ;; Inline when child is a seq.

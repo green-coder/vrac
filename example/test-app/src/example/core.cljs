@@ -3,6 +3,7 @@
             [example.reactive-fragment.core :refer [reactive-fragment-root]]
             [example.reactive-data.core :refer [reactive-data-root]]
             [example.vcup.core :refer [vcup-root]]
+            [example.icon.core :refer [icon-root]]
             [signaali.reactive :as sr]
             [vrac.web :as vw :refer [$]]))
 
@@ -19,6 +20,7 @@
      ($ reactive-data-root)
      ($ reactive-fragment-root)
      ($ context-root)
+     ($ icon-root)
      ,))
 
 ;; Shadow-CLJS hooks: start & reload the app
