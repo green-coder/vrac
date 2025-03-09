@@ -1,5 +1,6 @@
 (ns example.core
   (:require [example.context.core :refer [context-root]]
+            [example.math-ml.core :refer [math-ml-root]]
             [example.reactive-data.core :refer [reactive-data-root]]
             [example.reactive-fragment.core :refer [reactive-fragment-root]]
             [example.svg.core :refer [svg-root]]
@@ -21,6 +22,7 @@
      ($ reactive-fragment-root)
      ($ context-root)
      ($ svg-root)
+     ($ math-ml-root)
      ,))
 
 ;; Shadow-CLJS hooks: start & reload the app
