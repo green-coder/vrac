@@ -11,7 +11,7 @@
 (defn- diy-context-article []
   (let [counter (sr/create-signal 0)]
     ($ :article
-       ($ :h3 "DIY context using dynamic variables")
+       ($ :h2 "DIY context using dynamic variables")
        ($ :button {:on-click #(swap! counter inc)} "counter = " counter)
        (display-diy-context "global context")
        (let [context *diy-context* ;; The current context, expectedly a reactive node.
@@ -37,7 +37,7 @@
         counter (sr/create-signal 0)]
     (vw/with-context root-context
       ($ :article
-         ($ :h3 "Built-in context")
+         ($ :h2 "Built-in context")
          ($ :button {:on-click #(swap! counter inc)} "counter = " counter)
          ($ display-built-in-context "global context")
          (vw/with-context-update (fn [parent-context]

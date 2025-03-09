@@ -12,7 +12,7 @@
 (defn- if-fragment-article []
   (let [counter-state (sr/create-state 0)]
     ($ :article
-       ($ :h3 "If fragment")
+       ($ :h2 "If fragment")
        ($ counter-component counter-state)
        (vw/if-fragment (fn [] (even? @counter-state))
          ($ :div "The value is even.")
@@ -21,7 +21,7 @@
 (defn- case-fragment-article []
   (let [state (sr/create-state {:current-route :route/homepage})]
     ($ :article
-       ($ :h3 "Case fragment")
+       ($ :h2 "Case fragment")
        ($ :button {:on-click #(swap! state assoc :current-route :route/homepage)} "Home")
        ($ :button {:on-click #(swap! state assoc :current-route :route/blog)}     "Blog")
        ($ :button {:on-click #(swap! state assoc :current-route :route/about)}    "About")
@@ -35,7 +35,7 @@
 (defn- cond-fragment-article []
   (let [current-route (sr/create-state :route/homepage)]
     ($ :article
-       ($ :h3 "Cond fragment")
+       ($ :h2 "Cond fragment")
        ($ :button {:on-click #(reset! current-route :route/homepage)} "Home")
        ($ :button {:on-click #(reset! current-route :route/blog)}     "Blog")
        ($ :button {:on-click #(reset! current-route :route/about)}    "About")
@@ -52,7 +52,7 @@
                                           {:id 1 :name "Barbara"}
                                           {:id 2 :name "Cedric"}]})]
     ($ :article
-       ($ :h3 "For fragment")
+       ($ :h2 "For fragment")
 
        (let [new-person-name (sr/create-state "Louise")]
          ($ :div

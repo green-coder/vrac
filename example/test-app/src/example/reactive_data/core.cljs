@@ -20,6 +20,7 @@
 (defn controlled-input-article []
   ($ :article
      ($ :h2 "Controlled input")
+     ($ :div "This input's content is limited to 10 characters.")
      (let [text (sr/create-state "short text")]
        ($ :input
           (vw/attributes-effect (fn [] {:value @text}))
