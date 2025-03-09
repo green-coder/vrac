@@ -24,7 +24,8 @@
 (defn- vcup-element? [x]
   (and (instance? VcupNode x)
        (not= (:node-type x) :<>)
-       (simple-keyword? (:node-type x))))
+       (or (simple-keyword? (:node-type x))
+           (instance? js/Element (:node-type x)))))
 
 (defn- component-invocation? [x]
   (and (instance? VcupNode x)
@@ -235,8 +236,11 @@
 
                                ;; ($ :div ,,,)
                                (vcup-element? vcup)
-                               (let [{:keys [element-tag id classes]} (parse-element-tag (name (:node-type vcup)))
-                                     ^js/Element element (js/document.createElement element-tag)
+                               (let [node-type (:node-type vcup)
+                                     [^js/Element element id classes] (if (instance? js/Element node-type)
+                                                                        [node-type nil nil]
+                                                                        (let [{:keys [element-tag id classes]} (parse-element-tag (name node-type))]
+                                                                          [(js/document.createElement element-tag) id classes]))
                                      children (:children vcup)
 
                                      ;; Collect all the attributes.
