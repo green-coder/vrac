@@ -13,12 +13,33 @@
      ($ :h2 "Using an SVG element built from a string")
      (fox-origami)))
 
-(defn- changing-attributes-on-existing-svg-element []
+(defn- changing-an-existing-svg-element []
   ($ :article
-     ($ :h2 "Changing the attributes on an existing SVG element")
+     ($ :h2 "Changing an existing SVG element")
+
+     ($ :h3 "Custom width and height")
      ($ (fox-origami)
         {:width "20rem"
-         :height "20rem"})))
+         :height "20rem"})
+
+     ($ :h3 "Then add children")
+     ($ (fox-origami)
+        {:width "20rem"
+         :height "20rem"}
+        ;; Right eye
+        ($ :circle {:cx 14.5
+                    :cy 20
+                    :r 3.5
+                    :fill "white"
+                    :stroke "black"
+                    :stroke-width 1})
+        ;; Left eye
+        ($ :circle {:cx 24.5
+                    :cy 20
+                    :r 3.5
+                    :fill "white"
+                    :stroke "black"
+                    :stroke-width 1}))))
 
 (defn- svg-element-using-vcup []
   ($ :article
@@ -85,7 +106,7 @@
 (defn svg-root []
   ($ :div
      ($ string-to-svg-element)
-     ($ changing-attributes-on-existing-svg-element)
+     ($ changing-an-existing-svg-element)
      ($ svg-element-using-vcup)
      ($ foreign-object-inside-svg)
      ,))
