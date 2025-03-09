@@ -21,11 +21,12 @@
   (and (instance? VcupNode x)
        (= (:node-type x) :<>)))
 
-(defn- vcup-element? [x]
-  (and (instance? VcupNode x)
-       (not= (:node-type x) :<>)
-       (or (simple-keyword? (:node-type x))
-           (instance? js/Element (:node-type x)))))
+#?(:cljs
+   (defn- vcup-element? [x]
+     (and (instance? VcupNode x)
+          (not= (:node-type x) :<>)
+          (or (simple-keyword? (:node-type x))
+              (instance? js/Element (:node-type x))))))
 
 (defn- component-invocation? [x]
   (and (instance? VcupNode x)
@@ -192,10 +193,11 @@
 
 ;; ----------------------------------------------
 
-(defn html-text-to-dom [html-text]
-  (let [^js/Element element (js/document.createElement "div")]
-    (set! (.-innerHTML element) html-text)
-    (.-firstElementChild element)))
+#?(:cljs
+   (defn html-text-to-dom [html-text]
+     (let [^js/Element element (js/document.createElement "div")]
+       (set! (.-innerHTML element) html-text)
+       (.-firstElementChild element))))
 
 (def ^:private inline-seq-children-xf
   (mapcat (fn [child] ;; Inline when child is a seq.
