@@ -121,9 +121,8 @@
                                           attribute-value))
            ;; Set a general element attribute
            (let [attribute-value (when-not (false? attribute-value) attribute-value)]
-             ;; TODO: which one should I use? it depends?
-             ;;(-> element (gobj/set attribute-name attribute-value))
-             (-> element (.setAttribute attribute-name attribute-value))))))))
+             (-> element (gobj/set attribute-name attribute-value))
+             #_(-> element (.setAttribute attribute-name attribute-value))))))))
 
 #?(:cljs
    (defn- unset-element-attribute [^js/Element element attribute-kw attribute-value]
@@ -143,9 +142,8 @@
                                                  (subs (count "on-"))
                                                  str/lower-case)
                                              attribute-value))
-           ;; TODO: which one should I use? it depends?
-           ;;(-> element (gobj/set attribute-name nil))
-           (-> element (.removeAttribute attribute-name nil)))))))
+           (-> element (gobj/set attribute-name nil))
+           #_(-> element (.removeAttribute attribute-name nil)))))))
 
 (defn- deref+ [x]
   (cond
