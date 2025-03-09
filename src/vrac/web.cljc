@@ -133,7 +133,7 @@
                                           attribute-value))
            ;; Set a general element attribute
            (let [attribute-value (when-not (false? attribute-value) attribute-value)]
-             (if (= xmlns-kw :html)
+             (if (= xmlns-kw :none)
                (-> element (gobj/set attribute-name attribute-value))
                (-> element (.setAttribute attribute-name attribute-value)))))))))
 
@@ -155,7 +155,7 @@
                                                  (subs (count "on-"))
                                                  str/lower-case)
                                              attribute-value))
-           (if (= xmlns-kw :html)
+           (if (= xmlns-kw :none)
              (-> element (gobj/set attribute-name nil))
              (-> element (.removeAttribute attribute-name nil))))))))
 
@@ -220,7 +220,7 @@
 (defn $ [node-type & children]
   (VcupNode. node-type children))
 
-(def ^:private ^:dynamic *xmlns-kw* :html)
+(def ^:private ^:dynamic *xmlns-kw* :none)
 
 #?(:cljs
    (defn process-vcup [vcup]
@@ -262,25 +262,28 @@
                                ;; ($ :div ,,,)
                                (vcup-element? vcup)
                                (let [node-type (:node-type vcup)
-                                     [xmlns-kw ^js/Element element id classes] (if (instance? js/Element node-type)
-                                                                                 ;; DOM element
-                                                                                 (let [tag-name (str/lower-case (.-tagName node-type))
-                                                                                       xmlns-kw (case tag-name
-                                                                                                  "svg" :svg
-                                                                                                  "math" :math
-                                                                                                  :html)]
-                                                                                   [xmlns-kw node-type nil nil])
-                                                                                 ;; keywords like :div and :div#id.class1.class2
-                                                                                 (let [{:keys [tag-name id classes]} (parse-element-tag (name node-type))
-                                                                                       xmlns-kw (case tag-name
-                                                                                                  "svg" :svg
-                                                                                                  "math" :math
-                                                                                                  *xmlns-kw*)
-                                                                                       element (case xmlns-kw
-                                                                                                 :svg  (js/document.createElementNS xmlns-svg tag-name)
-                                                                                                 :math (js/document.createElementNS xmlns-math-ml tag-name)
-                                                                                                 :html (js/document.createElement tag-name))]
-                                                                                   [xmlns-kw element id classes]))
+                                     [xmlns-kw children-xmlns-kw ^js/Element element id classes] (if (instance? js/Element node-type)
+                                                                                                   ;; DOM element
+                                                                                                   (let [tag-name (.-tagName node-type)
+                                                                                                         [xmlns-kw children-xmlns-kw] (case (str/lower-case tag-name)
+                                                                                                                                        "svg" [:svg :svg]
+                                                                                                                                        "math" [:math :math]
+                                                                                                                                        "foreignobject" [*xmlns-kw* :none]
+                                                                                                                                        [*xmlns-kw* *xmlns-kw*])]
+                                                                                                     [xmlns-kw children-xmlns-kw node-type nil nil])
+                                                                                                   ;; keywords like :div and :div#id.class1.class2
+                                                                                                   (let [{:keys [tag-name id classes]} (parse-element-tag (name node-type))
+                                                                                                         [xmlns-kw children-xmlns-kw] (case tag-name
+                                                                                                                                        "svg" [:svg :svg]
+                                                                                                                                        "math" [:math :math]
+                                                                                                                                        "foreignObject" [*xmlns-kw* :none]
+                                                                                                                                        [*xmlns-kw* *xmlns-kw*])
+                                                                                                         element (case xmlns-kw
+                                                                                                                   :svg  (js/document.createElementNS xmlns-svg tag-name)
+                                                                                                                   :math (js/document.createElementNS xmlns-math-ml tag-name)
+                                                                                                                   :none (js/document.createElement tag-name))]
+                                                                                                     [xmlns-kw children-xmlns-kw element id classes]))
+
                                      children (:children vcup)
 
                                      ;; Collect all the attributes.
@@ -290,7 +293,7 @@
                                                       (filterv attributes? children))
 
                                      ;; Convert the children into elements.
-                                     child-elements (binding [*xmlns-kw* xmlns-kw]
+                                     child-elements (binding [*xmlns-kw* children-xmlns-kw]
                                                       (into []
                                                             (comp (remove attributes?)
                                                                   inline-seq-children-xf
