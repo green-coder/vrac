@@ -6,6 +6,18 @@
             #?(:cljs [goog.object :as gobj])
             [signaali.reactive :as sr]))
 
+(def xmlns-math-ml "http://www.w3.org/1998/Math/MathML")
+(def xmlns-html    "http://www.w3.org/1999/xhtml")
+(def xmlns-svg     "http://www.w3.org/2000/svg")
+
+#_
+(def xmlns-by-kw
+  {:math xmlns-math-ml
+   :html xmlns-html
+   :svg  xmlns-svg})
+
+;; ----------------------------------------------
+
 (defrecord VcupNode [node-type children])
 (defrecord ReactiveFragment [reactive-node])
 (defrecord AttributeEffect [reactive-attributes])
@@ -67,8 +79,8 @@
             (case (subs part 0 1)
               "." (update acc :classes conj (subs part 1))
               "#" (assoc acc :id (subs part 1))
-              (assoc acc :element-tag part)))
-          {:element-tag "div"
+              (assoc acc :tag-name part)))
+          {:tag-name "div"
            :id nil
            :classes []}
           (re-seq #"[#.]?[^#.]+" s)))
@@ -102,7 +114,7 @@
 ;; ----------------------------------------------
 
 #?(:cljs
-   (defn- set-element-attribute [^js/Element element attribute-kw attribute-value]
+   (defn- set-element-attribute [xmlns-kw ^js/Element element attribute-kw attribute-value]
      (cond
        ;; TODO: see if we could use `classList` on the element
        (= attribute-kw :class)
@@ -121,11 +133,12 @@
                                           attribute-value))
            ;; Set a general element attribute
            (let [attribute-value (when-not (false? attribute-value) attribute-value)]
-             (-> element (gobj/set attribute-name attribute-value))
-             #_(-> element (.setAttribute attribute-name attribute-value))))))))
+             (if (= xmlns-kw :html)
+               (-> element (gobj/set attribute-name attribute-value))
+               (-> element (.setAttribute attribute-name attribute-value)))))))))
 
 #?(:cljs
-   (defn- unset-element-attribute [^js/Element element attribute-kw attribute-value]
+   (defn- unset-element-attribute [xmlns-kw ^js/Element element attribute-kw attribute-value]
      ;; TODO: We might not need to unset all the attributes all the time.
      (cond
        (= attribute-kw :class)
@@ -142,8 +155,9 @@
                                                  (subs (count "on-"))
                                                  str/lower-case)
                                              attribute-value))
-           (-> element (gobj/set attribute-name nil))
-           #_(-> element (.removeAttribute attribute-name nil)))))))
+           (if (= xmlns-kw :html)
+             (-> element (gobj/set attribute-name nil))
+             (-> element (.removeAttribute attribute-name nil))))))))
 
 (defn- deref+ [x]
   (cond
@@ -152,7 +166,7 @@
     :else x))
 
 #?(:cljs
-   (defn- dynamic-attributes-effect [^js/Element element attrs]
+   (defn- dynamic-attributes-effect [xmlns-kw ^js/Element element attrs]
      (let [attrs (->> attrs
                       ;; Combine the consecutive attribute-maps together, and
                       ;; unwrap the reactive-attributes in AttributeEffect values.
@@ -166,10 +180,10 @@
        (sr/create-effect (fn []
                            (let [attributes (transduce (map deref+) compose-attribute-maps {} attrs)]
                              (doseq [[attribute-kw attribute-value] attributes]
-                               (set-element-attribute element attribute-kw attribute-value))
+                               (set-element-attribute xmlns-kw element attribute-kw attribute-value))
                              (sr/on-clean-up (fn []
                                                (doseq [[attribute-kw attribute-value] attributes]
-                                                 (unset-element-attribute element attribute-kw attribute-value))))))))))
+                                                 (unset-element-attribute xmlns-kw element attribute-kw attribute-value))))))))))
 
 #?(:cljs
    (defn dynamic-children-effect
@@ -205,6 +219,8 @@
 
 (defn $ [node-type & children]
   (VcupNode. node-type children))
+
+(def ^:private ^:dynamic *xmlns-kw* :html)
 
 #?(:cljs
    (defn process-vcup [vcup]
@@ -246,10 +262,25 @@
                                ;; ($ :div ,,,)
                                (vcup-element? vcup)
                                (let [node-type (:node-type vcup)
-                                     [^js/Element element id classes] (if (instance? js/Element node-type)
-                                                                        [node-type nil nil]
-                                                                        (let [{:keys [element-tag id classes]} (parse-element-tag (name node-type))]
-                                                                          [(js/document.createElement element-tag) id classes]))
+                                     [xmlns-kw ^js/Element element id classes] (if (instance? js/Element node-type)
+                                                                                 ;; DOM element
+                                                                                 (let [tag-name (str/lower-case (.-tagName node-type))
+                                                                                       xmlns-kw (case tag-name
+                                                                                                  "svg" :svg
+                                                                                                  "math" :math
+                                                                                                  :html)]
+                                                                                   [xmlns-kw node-type nil nil])
+                                                                                 ;; keywords like :div and :div#id.class1.class2
+                                                                                 (let [{:keys [tag-name id classes]} (parse-element-tag (name node-type))
+                                                                                       xmlns-kw (case tag-name
+                                                                                                  "svg" :svg
+                                                                                                  "math" :math
+                                                                                                  *xmlns-kw*)
+                                                                                       element (case xmlns-kw
+                                                                                                 :svg  (js/document.createElementNS xmlns-svg tag-name)
+                                                                                                 :math (js/document.createElementNS xmlns-math-ml tag-name)
+                                                                                                 :html (js/document.createElement tag-name))]
+                                                                                   [xmlns-kw element id classes]))
                                      children (:children vcup)
 
                                      ;; Collect all the attributes.
@@ -259,17 +290,18 @@
                                                       (filterv attributes? children))
 
                                      ;; Convert the children into elements.
-                                     child-elements (into []
-                                                          (comp (remove attributes?)
-                                                                inline-seq-children-xf
-                                                                (mapcat to-dom-elements))
-                                                          children)]
+                                     child-elements (binding [*xmlns-kw* xmlns-kw]
+                                                      (into []
+                                                            (comp (remove attributes?)
+                                                                  inline-seq-children-xf
+                                                                  (mapcat to-dom-elements))
+                                                            children))]
                                  ;; Set the element's attributes
                                  (if (every? attribute-map? attributes)
                                    (let [composed-attribute-maps (reduce compose-attribute-maps {} attributes)]
                                      (doseq [[attribute-kw attribute-value] composed-attribute-maps]
-                                       (set-element-attribute element attribute-kw attribute-value)))
-                                   (swap! all-effects conj (dynamic-attributes-effect element attributes)))
+                                       (set-element-attribute xmlns-kw element attribute-kw attribute-value)))
+                                   (swap! all-effects conj (dynamic-attributes-effect xmlns-kw element attributes)))
 
                                  ;; Set the element's children
                                  (if (every? dom-node? child-elements)
