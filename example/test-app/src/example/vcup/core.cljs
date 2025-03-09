@@ -8,6 +8,9 @@
      ($ :h3 "Text")
      "Hello, " "world!"
 
+     ($ :h3 "Unicode characters")
+     "There is two non-breakable spaces between A\u00a0and\u00a0B."
+
      ($ :h3 "Numbers")
      1 " " 2 " " 3
 

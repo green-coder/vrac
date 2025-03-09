@@ -318,7 +318,7 @@
                                (reactive-node? vcup)
                                (let [^js/Text text-node (js/document.createTextNode "")
                                      effect (sr/create-effect (fn []
-                                                                (set! (.-textContent text-node) @vcup)))]
+                                                                (set! (.-nodeValue text-node) @vcup)))]
                                  (swap! all-effects conj effect)
                                  [text-node])
 
