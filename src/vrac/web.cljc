@@ -6,15 +6,21 @@
             #?(:cljs [goog.object :as gobj])
             [signaali.reactive :as sr]))
 
-(def xmlns-math-ml "http://www.w3.org/1998/Math/MathML")
-(def xmlns-html    "http://www.w3.org/1999/xhtml")
-(def xmlns-svg     "http://www.w3.org/2000/svg")
+;; ----------------------------------------------
 
-#_
-(def xmlns-by-kw
-  {:math xmlns-math-ml
-   :html xmlns-html
-   :svg  xmlns-svg})
+(def ^:private ^:dynamic *userland-context*)
+
+(defn get-context []
+  *userland-context*)
+
+(defmacro with-context [new-context vcup]
+  `(binding [*userland-context* ~new-context]
+     (process-vcup ~vcup)))
+
+(defmacro with-context-update [context-fn vcup]
+  `(let [parent-context# *userland-context*
+         new-context# (sr/create-derived (fn [] (~context-fn parent-context#)))]
+     (with-context new-context# ~vcup)))
 
 ;; ----------------------------------------------
 
@@ -220,7 +226,20 @@
 (defn $ [node-type & children]
   (VcupNode. node-type children))
 
+;; ----------------------------------------------
+
+(def xmlns-math-ml "http://www.w3.org/1998/Math/MathML")
+(def xmlns-html    "http://www.w3.org/1999/xhtml")
+(def xmlns-svg     "http://www.w3.org/2000/svg")
+
+#_(def xmlns-by-kw
+    {:math xmlns-math-ml
+     :html xmlns-html
+     :svg  xmlns-svg})
+
 (def ^:private ^:dynamic *xmlns-kw* :none)
+
+;; ----------------------------------------------
 
 #?(:cljs
    (defn process-vcup [vcup]
@@ -491,22 +510,6 @@
                                                    elements)))
                                        coll)))
                              {:metadata {:name "for-fragment"}}))))))
-
-;; ----------------------------------------------
-
-(def ^:private ^:dynamic *userland-context*)
-
-(defn get-context []
-  *userland-context*)
-
-(defmacro with-context [new-context vcup]
-   `(binding [*userland-context* ~new-context]
-      (process-vcup ~vcup)))
-
-(defmacro with-context-update [context-fn vcup]
-  `(let [parent-context# *userland-context*
-         new-context# (sr/create-derived (fn [] (~context-fn parent-context#)))]
-     (with-context new-context# ~vcup)))
 
 ;; ----------------------------------------------
 
