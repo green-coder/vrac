@@ -1,4 +1,4 @@
-(ns example.vcup.core
+(ns example.vcup
   (:require [vrac.web :as vw :refer [$]]))
 
 (defn- text-node-article []

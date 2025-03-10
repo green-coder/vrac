@@ -1,10 +1,10 @@
 (ns example.core
-  (:require [example.context.core :refer [context-root]]
-            [example.math-ml.core :refer [math-ml-root]]
-            [example.reactive-data.core :refer [reactive-data-root]]
-            [example.reactive-fragment.core :refer [reactive-fragment-root]]
-            [example.svg.core :refer [svg-root]]
-            [example.vcup.core :refer [vcup-root]]
+  (:require [example.context :refer [context-root]]
+            [example.math-ml :refer [math-ml-root]]
+            [example.reactive-data :refer [reactive-data-root]]
+            [example.reactive-fragment :refer [reactive-fragment-root]]
+            [example.svg :refer [svg-root]]
+            [example.vcup :refer [vcup-root]]
             [signaali.reactive :as sr]
             [vrac.web :as vw :refer [$]]))
 

@@ -1,4 +1,4 @@
-(ns example.context.core
+(ns example.context
   (:require [signaali.reactive :as sr]
             [vrac.web :as vw :refer [$]]))
 

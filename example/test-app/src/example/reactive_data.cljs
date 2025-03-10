@@ -1,4 +1,4 @@
-(ns example.reactive-data.core
+(ns example.reactive-data
   (:require [signaali.reactive :as sr]
             [vrac.web :as vw :refer [$]]))
 

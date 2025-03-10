@@ -1,4 +1,4 @@
-(ns example.math-ml.core
+(ns example.math-ml
   (:require [vrac.web :as vw :refer [$]]))
 
 (defn- sample1-article []

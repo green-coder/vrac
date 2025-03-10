@@ -1,4 +1,4 @@
-(ns example.svg.core
+(ns example.svg
   (:require [shadow.resource :as rc]
             [vrac.web :as vw :refer [$]]))
 

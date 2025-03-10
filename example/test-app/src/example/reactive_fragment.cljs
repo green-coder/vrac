@@ -1,4 +1,4 @@
-(ns example.reactive-fragment.core
+(ns example.reactive-fragment
   (:require [signaali.reactive :as sr]
             [vrac.web :as vw :refer [$]]))
 
