@@ -200,14 +200,16 @@
      ;;       Would it be faster? less CPU-intensive?
      ;;       maybe different algorithms depending on the size?
      ;;       measurements needed.
-     (sr/create-effect (fn []
-                         (let [new-children (make-array 0)]
-                           (doseq [element elements]
-                             (if (reactive-fragment? element)
-                               (doseq [sub-element @(:reactive-node element)]
-                                 (.push new-children sub-element))
-                               (.push new-children element)))
-                           (-> parent-element .-replaceChildren (.apply parent-element new-children)))))))
+     (let [userland-context *userland-context*]
+       (sr/create-effect (fn []
+                           (binding [*userland-context* userland-context]
+                             (let [new-children (make-array 0)]
+                               (doseq [element elements]
+                                 (if (reactive-fragment? element)
+                                   (doseq [sub-element @(:reactive-node element)]
+                                     (.push new-children sub-element))
+                                   (.push new-children element)))
+                               (-> parent-element .-replaceChildren (.apply parent-element new-children)))))))))
 
 ;; ----------------------------------------------
 

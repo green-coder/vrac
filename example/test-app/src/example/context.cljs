@@ -54,11 +54,11 @@
        (sr/create-derived (fn []
                             (when (:birthday-party @context)
                               " says HAPPY BIRTHDAY !!! \uD83E\uDD73")))
-       " is there, where is the party ?!")))
+       " is there, where is the context ?!")))
 
 (defn- context-on-reactive-fragment []
   (let [root-context (sr/create-signal {:birthday-party true})
-        person-count (sr/create-signal 0)
+        person-count (sr/create-signal 2)
         persons (sr/create-derived (fn []
                                      (->> (cycle ["Alice" "Bob" "Connie" "Diva" "Elric" "Fred" "Giana"])
                                           (take @person-count)
@@ -68,6 +68,11 @@
     ($ :article
        ($ :h2 "Context on a reactive fragment")
        ($ :button {:on-click #(swap! person-count inc)} "Add 1 person to the party")
+       ($ :button {:on-click #(swap! root-context update :birthday-party not)}
+          (sr/create-memo (fn []
+                            (if (-> @root-context :birthday-party)
+                              "Turn the party OFF"
+                              "Turn the party ON"))))
        (vw/with-context root-context
          ($ :ul
             (vw/for-fragment* persons :id
