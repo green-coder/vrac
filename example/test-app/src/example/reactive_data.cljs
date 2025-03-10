@@ -3,21 +3,21 @@
             [vrac.web :as vw :refer [$]]))
 
 ;; Updating the state makes the DOM update
-(defn counter-component [counter-state]
+(defn- counter-component [counter-state]
   ($ :div
      "Counter value: " counter-state
      ($ :div
         ($ :button {:on-click #(swap! counter-state inc)} "Increment")
         ($ :button {:on-click #(reset! counter-state 0)} "Reset"))))
 
-(defn counters-article []
+(defn- counters-article []
   ($ :article
      ($ :h2 "Reactive counters")
      (for [i (range 3)]
        (let [counter-state (sr/create-state (* i 100))]
          ($ counter-component counter-state)))))
 
-(defn controlled-input-article []
+(defn- controlled-input-article []
   ($ :article
      ($ :h2 "Controlled input")
      ($ :div "This input's content is limited to 10 characters.")

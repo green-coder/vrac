@@ -2,7 +2,7 @@
   (:require [signaali.reactive :as sr]
             [vrac.web :as vw :refer [$]]))
 
-(defn counter-component [counter-state]
+(defn- counter-component [counter-state]
   ($ :div
      "Counter value: " counter-state
      ($ :div
