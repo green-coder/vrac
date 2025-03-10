@@ -47,8 +47,36 @@
            ($ display-built-in-context "local context"))
          ($ display-built-in-context "back to the global context")))))
 
+(defn- person-component [{:keys [name]}]
+  ($ :<>
+     name
+     (if-some [context (vw/get-context)]
+       (sr/create-derived (fn []
+                            (when (:birthday-party @context)
+                              " says HAPPY BIRTHDAY !!! \uD83E\uDD73")))
+       " is there, where is the party ?!")))
+
+(defn- context-on-reactive-fragment []
+  (let [root-context (sr/create-signal {:birthday-party true})
+        person-count (sr/create-signal 0)
+        persons (sr/create-derived (fn []
+                                     (->> (cycle ["Alice" "Bob" "Connie" "Diva" "Elric" "Fred" "Giana"])
+                                          (take @person-count)
+                                          (map-indexed (fn [index name]
+                                                         {:id index
+                                                          :name name})))))]
+    ($ :article
+       ($ :h2 "Context on a reactive fragment")
+       ($ :button {:on-click #(swap! person-count inc)} "Add 1 person to the party")
+       (vw/with-context root-context
+         ($ :ul
+            (vw/for-fragment* persons :id
+               (fn [person] ($ :li
+                               ($ person-component person)))))))))
+
 (defn context-root []
   ($ :div
      ($ diy-context-article)
      ($ builtin-context-article)
+     ($ context-on-reactive-fragment)
      ,))
