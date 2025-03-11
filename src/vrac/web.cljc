@@ -124,10 +124,14 @@
      (cond
        ;; TODO: see if we could use `classList` on the element
        (= attribute-kw :class)
-       (-> element (gobj/set "className" (class->str attribute-value)))
+       (if (= xmlns-kw :none)
+         (-> element (gobj/set "className" (class->str attribute-value)))
+         (-> element (.setAttribute "class" (class->str attribute-value))))
 
        (= attribute-kw :style)
-       (-> element (gobj/set "style" (style->str attribute-value)))
+       (if (= xmlns-kw :none)
+         (-> element (gobj/set "style" (style->str attribute-value)))
+         (-> element (.setAttribute "style" (style->str attribute-value))))
 
        :else
        (let [attribute-name (name attribute-kw)]
