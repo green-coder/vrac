@@ -121,53 +121,61 @@
 
 #?(:cljs
    (defn- set-element-attribute [xmlns-kw ^js/Element element attribute-kw attribute-value]
-     (cond
-       ;; TODO: see if we could use `classList` on the element
-       (= attribute-kw :class)
-       (if (= xmlns-kw :none)
-         (-> element (gobj/set "className" (class->str attribute-value)))
-         (-> element (.setAttribute "class" (class->str attribute-value))))
+     (let [attribute-name (name attribute-kw)]
+       (cond
+         ;; TODO: see if we could use `classList` on the element
+         (= attribute-kw :class)
+         (if (= xmlns-kw :none)
+           (-> element (gobj/set "className" (class->str attribute-value)))
+           (-> element (.setAttribute "class" (class->str attribute-value))))
 
-       (= attribute-kw :style)
-       (if (= xmlns-kw :none)
-         (-> element (gobj/set "style" (style->str attribute-value)))
-         (-> element (.setAttribute "style" (style->str attribute-value))))
+         (= attribute-kw :style)
+         (if (= xmlns-kw :none)
+           (-> element (gobj/set "style" (style->str attribute-value)))
+           (-> element (.setAttribute "style" (style->str attribute-value))))
 
-       :else
-       (let [attribute-name (name attribute-kw)]
-         (if (str/starts-with? attribute-name "on-")
-           ;; Add an event listener
-           (-> element (.addEventListener (-> attribute-name
-                                              (subs (count "on-"))
-                                              str/lower-case)
-                                          attribute-value))
-           ;; Set a general element attribute
-           (let [attribute-value (when-not (false? attribute-value) attribute-value)]
-             (if (= xmlns-kw :none)
-               (-> element (gobj/set attribute-name attribute-value))
-               (-> element (.setAttribute attribute-name attribute-value)))))))))
+         (str/starts-with? attribute-name "on-")
+         ;; Add an event listener
+         (-> element (.addEventListener (-> attribute-name
+                                            (subs (count "on-"))
+                                            str/lower-case)
+                                        attribute-value))
+
+         (str/starts-with? attribute-name "data-")
+         (-> element (.setAttribute attribute-name attribute-value))
+
+         :else
+         ;; Set a general element attribute
+         (let [attribute-value (when-not (false? attribute-value) attribute-value)]
+           (if (= xmlns-kw :none)
+             (-> element (gobj/set attribute-name attribute-value))
+             (-> element (.setAttribute attribute-name attribute-value))))))))
 
 #?(:cljs
    (defn- unset-element-attribute [xmlns-kw ^js/Element element attribute-kw attribute-value]
      ;; TODO: We might not need to unset all the attributes all the time.
-     (cond
-       (= attribute-kw :class)
-       (-> element (.removeAttribute "className"))
+     (let [attribute-name (name attribute-kw)]
+       (cond
+         (= attribute-kw :class)
+         (-> element (.removeAttribute "className"))
 
-       (= attribute-kw :style)
-       (-> element (.removeAttribute "style"))
+         (= attribute-kw :style)
+         (-> element (.removeAttribute "style"))
 
-       :else
-       (let [attribute-name (name attribute-kw)]
-         (if (str/starts-with? attribute-name "on-")
-           ;; Event listener
-           (-> element (.removeEventListener (-> attribute-name
-                                                 (subs (count "on-"))
-                                                 str/lower-case)
-                                             attribute-value))
-           (if (= xmlns-kw :none)
-             (-> element (gobj/set attribute-name nil))
-             (-> element (.removeAttribute attribute-name nil))))))))
+         (str/starts-with? attribute-name "on-")
+         ;; Event listener
+         (-> element (.removeEventListener (-> attribute-name
+                                               (subs (count "on-"))
+                                               str/lower-case)
+                                           attribute-value))
+
+         (str/starts-with? attribute-name "data-")
+         (-> element (.removeAttribute attribute-name))
+
+         :else
+         (if (= xmlns-kw :none)
+           (-> element (gobj/set attribute-name nil))
+           (-> element (.removeAttribute attribute-name)))))))
 
 (defn- deref+ [x]
   (cond
