@@ -8,6 +8,19 @@
 
 ;; ----------------------------------------------
 
+(def xmlns-math-ml "http://www.w3.org/1998/Math/MathML")
+(def xmlns-html    "http://www.w3.org/1999/xhtml")
+(def xmlns-svg     "http://www.w3.org/2000/svg")
+
+#_(def xmlns-by-kw
+    {:math xmlns-math-ml
+     :html xmlns-html
+     :svg  xmlns-svg})
+
+(def ^:private ^:dynamic *xmlns-kw* :none)
+
+;; ----------------------------------------------
+
 (def ^:private ^:dynamic *userland-context*)
 
 (defn get-context []
@@ -212,9 +225,11 @@
      ;;       Would it be faster? less CPU-intensive?
      ;;       maybe different algorithms depending on the size?
      ;;       measurements needed.
-     (let [userland-context *userland-context*]
+     (let [xmlns-kw *xmlns-kw*
+           userland-context *userland-context*]
        (sr/create-effect (fn []
-                           (binding [*userland-context* userland-context]
+                           (binding [*xmlns-kw* xmlns-kw
+                                     *userland-context* userland-context]
                              (let [new-children (make-array 0)]
                                (doseq [element elements]
                                  (if (reactive-fragment? element)
@@ -239,19 +254,6 @@
 
 (defn $ [node-type & children]
   (VcupNode. node-type children))
-
-;; ----------------------------------------------
-
-(def xmlns-math-ml "http://www.w3.org/1998/Math/MathML")
-(def xmlns-html    "http://www.w3.org/1999/xhtml")
-(def xmlns-svg     "http://www.w3.org/2000/svg")
-
-#_(def xmlns-by-kw
-    {:math xmlns-math-ml
-     :html xmlns-html
-     :svg  xmlns-svg})
-
-(def ^:private ^:dynamic *xmlns-kw* :none)
 
 ;; ----------------------------------------------
 
