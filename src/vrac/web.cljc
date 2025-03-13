@@ -396,17 +396,20 @@
          (sr/run-after owned-effect scope))
        scope))))
 
-(defn if-fragment* [vcup-fn]
-  #?(:cljs
-     (ReactiveFragment.
-       (sr/create-derived (fn []
-                            (let [{:keys [effects elements]} (process-vcup (vcup-fn))]
-                              ;; scope-effect is inside the ReactiveFragment's effect because
-                              ;; we want its lifetime to depend on the `(boolean if-cond)` value.
-                              (some-> (scope-effect effects)
-                                      deref)
-                              elements))
-                          {:metadata {:name "active-if-branch-vcup"}}))))
+(defn reactive-fragment
+  ([vcup-fn]
+   (reactive-fragment vcup-fn {:metadata {:name "dynamic-fragment"}}))
+  ([vcup-fn options]
+   #?(:cljs
+      (ReactiveFragment.
+        (sr/create-derived (fn []
+                             (let [{:keys [effects elements]} (process-vcup (vcup-fn))]
+                               ;; scope-effect is inside the ReactiveFragment's effect because
+                               ;; we want its lifetime to depend on the `(boolean if-cond)` value.
+                               (some-> (scope-effect effects)
+                                       deref)
+                               elements))
+                           options)))))
 
 (defmacro if-fragment [reactive+-condition then-vcup-expr else-vcup-expr]
   `(let [reactive+-condition# ~reactive+-condition
@@ -416,29 +419,24 @@
                     (if @boolean-condition#
                       ~then-vcup-expr
                       ~else-vcup-expr))]
-     (if-fragment* vcup-fn#)))
+     (reactive-fragment vcup-fn# {:metadata {:name "if-fragment"}})))
 
 (defn- indexed-fragment [reactive-matched-index-or-nil
                          clause-index->clause-vcup
                          default-clause]
   #?(:cljs
-     (ReactiveFragment.
-       (sr/create-derived (fn []
-                            (let [matched-index @reactive-matched-index-or-nil
-                                  vcup-clause (cond
-                                                (some? matched-index)
-                                                (-> matched-index clause-index->clause-vcup)
+     (reactive-fragment (fn []
+                          (let [matched-index @reactive-matched-index-or-nil]
+                            (cond
+                              (some? matched-index)
+                              (-> matched-index clause-index->clause-vcup)
 
-                                                (= default-clause ::undefined)
-                                                (throw (js/Error. "Missing default clause in indexed-fragment."))
+                              (= default-clause ::undefined)
+                              (throw (js/Error. "Missing default clause in indexed-fragment."))
 
-                                                :else
-                                                default-clause)
-                                  {:keys [effects elements]} (process-vcup vcup-clause)]
-                              (some-> (scope-effect effects)
-                                      deref)
-                              elements))
-                          {:metadata {:name "index-fragment"}}))))
+                              :else
+                              default-clause)))
+                        {:metadata {:name "index-fragment"}})))
 
 (defn case-fragment* [reactive+-value-expr
                       clause-value->clause-index
