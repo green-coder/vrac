@@ -5,6 +5,7 @@
             [example.reactive-fragment :refer [reactive-fragment-root]]
             [example.svg :refer [svg-root]]
             [example.vcup :refer [vcup-root]]
+            [example.ui-component :refer [ui-component-root]]
             [signaali.reactive :as sr]
             [vrac.web :as vw :refer [$]]))
 
@@ -23,6 +24,7 @@
      ($ context-root)
      ($ svg-root)
      ($ math-ml-root)
+     ($ ui-component-root)
      ,))
 
 ;; Shadow-CLJS hooks: start & reload the app
