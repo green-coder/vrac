@@ -1,5 +1,6 @@
 (ns example.reactive-data
-  (:require [signaali.reactive :as sr]
+  (:require [clojure.string :as str]
+            [signaali.reactive :as sr]
             [vrac.web :as vw :refer [$]]))
 
 ;; Updating the state makes the DOM update
@@ -20,13 +21,16 @@
 (defn- controlled-input-article []
   ($ :article
      ($ :h2 "Controlled input")
-     ($ :div "This input's content is limited to 10 characters.")
-     (let [text (sr/create-state "short text")]
+     ($ :div "This input prevents its content from containing \"foobar\".")
+     (let [text-signal (sr/create-signal "foo")]
        ($ :input
-          (vw/attributes-effect (fn [] {:value @text}))
+          (vw/attributes-effect (fn [] {:value @text-signal}))
           {:on-input (fn [^js event]
-                       (let [s (-> event .-target .-value)]
-                         (reset! text (subs s (max (- (count s) 10) 0)))))}))))
+                       (let [text (-> event .-target .-value)]
+                         (swap! text-signal (fn [previous-text]
+                                              (if (str/includes? text "foobar")
+                                                previous-text
+                                                text)))))}))))
 
 (defn reactive-data-root []
   ($ :div
