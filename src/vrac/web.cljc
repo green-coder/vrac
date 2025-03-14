@@ -1,5 +1,7 @@
 (ns vrac.web
-  #?(:cljs (:require-macros [vrac.web :refer [if-fragment
+  #?(:cljs (:require-macros [vrac.web :refer [with-context
+                                              with-context-update
+                                              if-fragment
                                               case-fragment
                                               cond-fragment]]))
   (:require [clojure.string :as str]
@@ -166,7 +168,6 @@
 
 #?(:cljs
    (defn- unset-element-attribute [xmlns-kw ^js/Element element attribute-kw attribute-value]
-     ;; TODO: We might not need to unset all the attributes all the time.
      (let [attribute-name (name attribute-kw)]
        (cond
          (= attribute-kw :class)
@@ -207,14 +208,18 @@
                               (mapcat (fn [attribute-group]
                                         (if (attribute-map? (first attribute-group))
                                           [(reduce compose-attribute-maps {} attribute-group)]
-                                          (mapv :reactive-attributes attribute-group)))))))]
+                                          (mapv :reactive-attributes attribute-group)))))))
+           old-attributes (atom nil)]
        (sr/create-effect (fn []
                            (let [attributes (transduce (map deref+) compose-attribute-maps {} attrs)]
+                             (doseq [[attribute-kw attribute-value] @old-attributes
+                                     :when (not (contains? attributes attribute-kw))]
+                               (unset-element-attribute xmlns-kw element attribute-kw attribute-value))
+
                              (doseq [[attribute-kw attribute-value] attributes]
                                (set-element-attribute xmlns-kw element attribute-kw attribute-value))
-                             (sr/on-clean-up (fn []
-                                               (doseq [[attribute-kw attribute-value] attributes]
-                                                 (unset-element-attribute xmlns-kw element attribute-kw attribute-value))))))))))
+
+                             (reset! old-attributes attributes)))))))
 
 #?(:cljs
    (defn dynamic-children-effect
