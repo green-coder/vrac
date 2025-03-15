@@ -1,5 +1,5 @@
 {
-  "name": "si-frame-app",
+  "name": "si-frame-simple",
   "private": true,
   "scripts": {
     "start": "npx shadow-cljs watch :app",
