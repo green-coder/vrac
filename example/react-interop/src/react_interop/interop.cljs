@@ -79,11 +79,13 @@
 
 ;; Vrac component
 (defn interop-demo []
-  (let [text1 (sr/create-signal "text1")
-        text2 (sr/create-signal "text2")]
-    ($ :div
-       ($ text-input "Text1" text1)
-       ($ text-input "Text2" text2)
+  ($ :main
+     ($ :h1 "Vrac + React interop demo")
+     (let [text1 (sr/create-signal "text1")
+           text2 (sr/create-signal "text2")]
+       ($ :div
+          ($ text-input "Text1" text1)
+          ($ text-input "Text2" text2)
 
-       ($ interop-with-reagent-component-article text1 text2)
-       ($ interop-with-uix-component-article text1 text2))))
+          ($ interop-with-reagent-component-article text1 text2)
+          ($ interop-with-uix-component-article text1 text2)))))
