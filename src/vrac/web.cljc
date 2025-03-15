@@ -374,11 +374,15 @@
 
 ;; ----------------------------------------------
 
+;; TODO: make this obsolete
 (defn use-effect
   ([run-fn]
    (use-effect run-fn nil))
   ([run-fn options]
    (ComponentResult. [(sr/create-effect run-fn options)] nil)))
+
+(defn use-effects [effects]
+  (ComponentResult. effects nil))
 
 (defn attributes-effect [reactive-attributes]
   (AttributeEffect. reactive-attributes))
