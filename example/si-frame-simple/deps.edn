@@ -4,7 +4,7 @@
            org.clojure/clojurescript {:mvn/version "1.11.132"}
            thheller/shadow-cljs      {:mvn/version "2.28.21"}
            fi.metosin/vrac           {:local/root "../.."}
-           fi.metosin/si-frame       {:mvn/version "1.4.3.0"}}
+           fi.metosin/si-frame       {:mvn/version "1.4.3.0-no-siagent"}}
 
  :aliases {;; clojure -M:outdated --upgrade
            :outdated {:extra-deps {com.github.liquidz/antq {:mvn/version "2.11.1269"}}

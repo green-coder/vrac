@@ -7,8 +7,5 @@
   },
   "devDependencies": {
     "shadow-cljs": "^2.28.21"
-  },
-  "dependencies": {
-    "react": "^19.0.0"
   }
 }

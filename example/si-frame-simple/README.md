@@ -2,8 +2,6 @@
 
 This project shows how to use Si-frame together with Vrac.
 
-Note: React is in the dependencies but is totally not used in this project.
-
 ## How to run this project
 
 ```shell
