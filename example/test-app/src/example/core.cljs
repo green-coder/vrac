@@ -4,6 +4,7 @@
             [example.reactive-data :refer [reactive-data-root]]
             [example.reactive-fragment :refer [reactive-fragment-root]]
             [example.svg :refer [svg-root]]
+            [example.ref-and-use-effect :refer [ref-and-use-effect-root]]
             [example.vcup :refer [vcup-root]]
             [example.ui-component :refer [ui-component-root]]
             [signaali.reactive :as sr]
@@ -21,6 +22,7 @@
      ($ vcup-root)
      ($ reactive-data-root)
      ($ reactive-fragment-root)
+     ($ ref-and-use-effect-root)
      ($ context-root)
      ($ svg-root)
      ($ math-ml-root)

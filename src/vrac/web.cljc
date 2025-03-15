@@ -149,6 +149,10 @@
            (-> element (gobj/set "style" (style->str attribute-value)))
            (-> element (.setAttribute "style" (style->str attribute-value))))
 
+         (= attribute-kw :ref)
+         (let [ref-signal attribute-value]
+           (reset! ref-signal element))
+
          (str/starts-with? attribute-name "on-")
          ;; Add an event listener
          (-> element (.addEventListener (-> attribute-name
