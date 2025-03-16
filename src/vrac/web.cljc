@@ -134,6 +134,22 @@
 
 ;; ----------------------------------------------
 
+(defn- deref+ [x]
+  (cond
+    (instance? signaali.reactive.ReactiveNode x) @x
+    (fn? x) (x)
+    :else x))
+
+#?(:cljs
+   (defn- refs-effect [^js/Element element refs]
+     (sr/create-effect
+       (fn []
+         (doseq [ref refs]
+           (reset! ref element))
+         (sr/on-clean-up (fn []
+                           (doseq [ref refs]
+                             (reset! ref nil))))))))
+
 #?(:cljs
    (defn- set-element-attribute [xmlns-kw ^js/Element element attribute-kw attribute-value]
      (let [attribute-name (name attribute-kw)]
@@ -150,8 +166,7 @@
            (-> element (.setAttribute "style" (style->str attribute-value))))
 
          (= attribute-kw :ref)
-         (let [ref-signal attribute-value]
-           (reset! ref-signal element))
+         nil ;; no-op
 
          (str/starts-with? attribute-name "on-")
          ;; Add an event listener
@@ -180,6 +195,9 @@
          (= attribute-kw :style)
          (-> element (.removeAttribute "style"))
 
+         (= attribute-kw :ref)
+         nil ;; no-op
+
          (str/starts-with? attribute-name "on-")
          ;; Event listener
          (-> element (.removeEventListener (-> attribute-name
@@ -194,12 +212,6 @@
          (if (= xmlns-kw :none)
            (-> element (gobj/set attribute-name nil))
            (-> element (.removeAttribute attribute-name)))))))
-
-(defn- deref+ [x]
-  (cond
-    (instance? signaali.reactive.ReactiveNode x) @x
-    (fn? x) (x)
-    :else x))
 
 #?(:cljs
    (defn- dynamic-attributes-effect [xmlns-kw ^js/Element element attrs]
@@ -343,6 +355,15 @@
                                                                   inline-seq-children-xf
                                                                   (mapcat to-dom-elements))
                                                             children))]
+                                 ;; Create an effect bound to the element's lifespan.
+                                 ;; It is limited to statically declared :ref attributes.
+                                 (let [refs (into []
+                                                  (comp (filter attribute-map?)
+                                                        (keep :ref))
+                                                  attributes)]
+                                   (when (seq refs)
+                                     (swap! all-effects conj (refs-effect element refs))))
+
                                  ;; Set the element's attributes
                                  (if (every? attribute-map? attributes)
                                    (let [composed-attribute-maps (reduce compose-attribute-maps {} attributes)]
