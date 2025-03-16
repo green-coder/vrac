@@ -41,7 +41,7 @@
 
 (defrecord VcupNode [node-type children])
 (defrecord ReactiveFragment [reactive-node])
-(defrecord AttributeEffect [reactive-attributes])
+(defrecord AttributeEffect [reactive+-attributes])
 (defrecord ComponentResult [effects elements])
 
 ;; ----------------------------------------------
@@ -205,14 +205,14 @@
    (defn- dynamic-attributes-effect [xmlns-kw ^js/Element element attrs]
      (let [attrs (->> attrs
                       ;; Combine the consecutive attribute-maps together, and
-                      ;; unwrap the reactive-attributes in AttributeEffect values.
+                      ;; unwrap the reactive+-attributes in AttributeEffect values.
                       (into []
                             (comp
                               (partition-by attribute-effect?)
                               (mapcat (fn [attribute-group]
                                         (if (attribute-map? (first attribute-group))
                                           [(reduce compose-attribute-maps {} attribute-group)]
-                                          (mapv :reactive-attributes attribute-group)))))))
+                                          (mapv :reactive+-attributes attribute-group)))))))
            old-attributes (atom nil)]
        (sr/create-effect (fn []
                            (let [attributes (transduce (map deref+) compose-attribute-maps {} attrs)]
@@ -377,8 +377,8 @@
 (defn use-effects [effects]
   (ComponentResult. effects nil))
 
-(defn attributes-effect [reactive-attributes]
-  (AttributeEffect. reactive-attributes))
+(defn attributes-effect [reactive+-attributes]
+  (AttributeEffect. reactive+-attributes))
 
 ;; ----------------------------------------------
 
