@@ -1,4 +1,4 @@
-(ns example.ref-and-use-effect
+(ns example.ref-and-use-effects
   (:require [signaali.reactive :as sr]
             [vrac.web :as vw :refer [$]]))
 
@@ -16,7 +16,7 @@
                    (.-innerText element)
                    "<ref is nil>"))))))
 
-(defn- use-effect-article [element-ref]
+(defn- use-effects-article [element-ref]
   ($ :article
      ($ :h2 "Use `use-effect` on a ref")
      "The square is:"
@@ -29,16 +29,17 @@
            {:style {:width "50px"
                     :height "50px"}}
            (vw/attributes-effect (fn [] {:style {:background-color @color-signal}}))
-           (vw/use-effect
-             (fn []
-               (reset! color-signal
-                       (if (some? @element-ref)
-                         "green"
-                         "red"))))))))
+           (vw/use-effects
+             [(sr/create-effect
+                (fn []
+                  (reset! color-signal
+                          (if (some? @element-ref)
+                            "green"
+                            "red"))))])))))
 
-(defn ref-and-use-effect-root []
+(defn ref-and-use-effects-root []
   (let [element-ref (sr/create-signal nil)]
     ($ :div
        ($ ref-signal-article element-ref)
        ($ using-ref-somewhere-else-article element-ref)
-       ($ use-effect-article element-ref))))
+       ($ use-effects-article element-ref))))

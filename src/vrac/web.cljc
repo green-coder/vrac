@@ -228,7 +228,7 @@
 #?(:cljs
    (defn dynamic-children-effect
      "Dynamically update the DOM node so that its children keep representing the elements array.
-   The elements are either js/Element or a reactive node whose value is a sequence of js/Element."
+      The elements are either js/Element or a reactive node whose value is a sequence of js/Element."
      [^js/Element parent-element elements]
      ;; TODO: This algorithm could be improved to only replace children where it is needed.
      ;;       Would it be faster? less CPU-intensive?
@@ -373,13 +373,6 @@
        (ComponentResult. @all-effects elements))))
 
 ;; ----------------------------------------------
-
-;; TODO: make this obsolete
-(defn use-effect
-  ([run-fn]
-   (use-effect run-fn nil))
-  ([run-fn options]
-   (ComponentResult. [(sr/create-effect run-fn options)] nil)))
 
 (defn use-effects [effects]
   (ComponentResult. effects nil))
