@@ -10,10 +10,8 @@
           ($ :button {:on-click (fn [] (swap! is-existing not))}
              (sr/create-derived (fn [] (if @is-existing "Destroy element" "Create element"))))
           " "
-          (vw/reactive-fragment
-            (fn []
-              (when @is-existing
-                ($ :span {:ref element-ref} "Referred element"))))))))
+          (vw/when-fragment is-existing
+            ($ :span {:ref element-ref} "Referred element"))))))
 
 (defn- using-ref-somewhere-else-article1 [element-ref]
   ($ :article

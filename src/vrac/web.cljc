@@ -404,7 +404,7 @@
 
 (defn reactive-fragment
   ([vcup-fn]
-   (reactive-fragment vcup-fn {:metadata {:name "dynamic-fragment"}}))
+   (reactive-fragment vcup-fn {:metadata {:name "reactive-fragment"}}))
   ([vcup-fn options]
    #?(:cljs
       (ReactiveFragment.
@@ -416,6 +416,15 @@
                                        deref)
                                elements))
                            options)))))
+
+(defmacro when-fragment [reactive+-condition then-vcup-expr]
+  `(let [reactive+-condition# ~reactive+-condition
+         boolean-condition# (sr/create-memo (fn []
+                                              (boolean (deref+ reactive+-condition#))))
+         vcup-fn# (fn []
+                    (when @boolean-condition#
+                      ~then-vcup-expr))]
+     (reactive-fragment vcup-fn# {:metadata {:name "when-fragment"}})))
 
 (defmacro if-fragment [reactive+-condition then-vcup-expr else-vcup-expr]
   `(let [reactive+-condition# ~reactive+-condition
