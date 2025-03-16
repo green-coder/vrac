@@ -355,6 +355,7 @@
                                                                   inline-seq-children-xf
                                                                   (mapcat to-dom-elements))
                                                             children))]
+                                 ;; TODO: Can we use on-dispose instead?
                                  ;; Create an effect bound to the element's lifespan.
                                  ;; It is limited to statically declared :ref attributes.
                                  (let [refs (into []

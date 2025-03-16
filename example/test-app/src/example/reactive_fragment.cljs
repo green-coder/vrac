@@ -1,5 +1,6 @@
 (ns example.reactive-fragment
-  (:require [signaali.reactive :as sr]
+  (:require [clojure.string :as str]
+            [signaali.reactive :as sr]
             [vrac.web :as vw :refer [$]]))
 
 (defn- counter-component [counter-state]
@@ -61,11 +62,12 @@
                {:on-input (fn [event]
                             (reset! new-person-name (-> event .-target .-value)))})
             ($ :button {:on-click (fn []
-                                    (swap! state update :persons
-                                           (fn [persons]
-                                             (-> persons
-                                                 (conj {:id (count persons)
-                                                        :name @new-person-name}))))
+                                    (when-not (str/blank? @new-person-name)
+                                      (swap! state update :persons
+                                             (fn [persons]
+                                               (-> persons
+                                                   (conj {:id   (count persons)
+                                                          :name @new-person-name})))))
                                     (reset! new-person-name ""))}
                "Add")))
 
