@@ -432,8 +432,8 @@
         (sr/create-derived (fn []
                              (let [{:keys [effects elements]} (process-vcup (vcup-fn))]
                                ;; scope-effect is inside the ReactiveFragment's effect because
-                               ;; we want its lifetime to depend on the `(boolean if-cond)` value.
-                               (some-> (scope-effect effects)
+                               ;; we want its lifespan to be the period between 2 re-runs of this reactive node.
+                               (some-> (scope-effect effects {:dispose-on-zero-signal-watchers true})
                                        deref)
                                elements))
                            options)))))
@@ -528,7 +528,7 @@
      ([reactive+-coll item-component]
       (for-fragment* reactive+-coll identity item-component))
      ([reactive+-coll key-fn item-component]
-      (let [item-cache-atom (atom {})] ;; mapping: item -> [scope elements]
+      (let [item-cache-atom (atom {})] ;; item-key -> [scope-effect elements]
         (ReactiveFragment.
           (sr/create-derived (fn []
                                (let [coll (deref+ reactive+-coll)
@@ -539,12 +539,13 @@
                                      old-item-cache @item-cache-atom
                                      new-item-cache (into {}
                                                           (map (fn [item]
-                                                                 (let [k (key-fn item)]
-                                                                   [k
-                                                                    (if (contains? old-item-cache k)
-                                                                      (get old-item-cache k)
+                                                                 (let [item-key (key-fn item)]
+                                                                   [item-key
+                                                                    (if (contains? old-item-cache item-key)
+                                                                      (get old-item-cache item-key)
                                                                       (let [{:keys [effects elements]} (process-vcup ($ item-component item))]
-                                                                        [(scope-effect effects) elements]))])))
+                                                                        [(scope-effect effects {:dispose-on-zero-signal-watchers true})
+                                                                         elements]))])))
                                                           coll)]
                                  (reset! item-cache-atom new-item-cache)
 
