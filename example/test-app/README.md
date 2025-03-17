@@ -15,7 +15,7 @@ follow the [displayed link](http://localhost:3000) to see the app.
 Compiling for production:
 
 ```shell
-npm run production-build
+npm run release
 ```
 
 The report describing the size of the different parts is `public/js/report.html`.

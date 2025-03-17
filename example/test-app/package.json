@@ -3,7 +3,7 @@
   "private": true,
   "scripts": {
     "start": "npx shadow-cljs watch :app",
-    "production-build": "npx shadow-cljs release :app"
+    "release": "npx shadow-cljs release :app"
   },
   "devDependencies": {
     "shadow-cljs": "^2.28.21"
