@@ -7,4 +7,17 @@
 
            ;; clojure -M:outdated --upgrade
            :outdated {:extra-deps {com.github.liquidz/antq {:mvn/version "2.11.1269"}}
-                      :main-opts  ["-m" "antq.core"]}}}
+                      :main-opts  ["-m" "antq.core"]}
+
+           :jar  {:replace-deps {com.github.seancorfield/depstar {:mvn/version "2.1.303"}}
+                  :exec-fn      hf.depstar/jar
+                  :exec-args    {:sync-pom    true
+                                 :group-id    "fi.metosin"
+                                 :artifact-id "vrac"
+                                 :version     "0.1.0"
+                                 :jar         "vrac.jar"}}
+
+           :deploy {:extra-deps {slipset/deps-deploy {:mvn/version "0.2.2"}}
+                    :exec-fn    deps-deploy.deps-deploy/deploy
+                    :exec-args  {:installer :remote
+                                 :artifact "vrac.jar"}}}}

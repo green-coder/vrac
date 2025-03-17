@@ -1,0 +1,56 @@
+name: Release
+
+on:
+  release:
+    types:
+      - published # reacts to releases and pre-releases, but not their drafts
+
+jobs:
+
+  test-and-release:
+
+    name: Release
+
+    timeout-minutes: 60
+
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: lts/hydrogen
+
+      - name: Setup Clojure
+        uses: DeLaGuardo/setup-clojure@master
+        with:
+          cli: latest
+
+      - name: Install dependencies
+        working-directory: ./test/playwright
+        run: npm ci
+
+      - name: Install Playwright Browsers
+        working-directory: ./test/playwright
+        run: npx playwright install --with-deps
+
+      - name: Run Playwright tests
+        working-directory: ./test/playwright
+        run: npm test
+
+      - uses: actions/upload-artifact@v4
+        if: ${{ !cancelled() }}
+        with:
+          name: playwright-report
+          path: test/playwright/playwright-report/
+          retention-days: 30
+
+      - name: Build the jar and update pom.xml's version
+        run: clojure -X:jar
+
+      - name: Deploy the jar and pom files to Clojars
+        run: clojure -X:deploy
+        env:
+          CLOJARS_USERNAME: green-coder
+          CLOJARS_PASSWORD: "${{ secrets.CLOJARS_DEPLOY_TOKEN }}"

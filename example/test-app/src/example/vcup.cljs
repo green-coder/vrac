@@ -77,7 +77,7 @@
             "(is " (+ a b c) " (+ a b c))"))))
 
 (defn vcup-root []
-  ($ :div
+  ($ :div {:data-testid "vcup-root"}
      ($ text-node-article)
      ($ image-article)
      ($ element-article)
