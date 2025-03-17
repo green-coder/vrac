@@ -13,7 +13,7 @@ Features implemented so far:
 - Uses signals to do efficient fine-grained updates on the DOM
 - As a good interop with React and Clojurescript React wrappers
 - 100% compatible with Re-frame via the fork [Si-frame](https://github.com/metosin/si-frame)
-- Has [concise and simple examples](https://github.com/metosin/vrac/example) showing how to use it
+- Has [concise and simple examples](/example) showing how to use it
 
 Features on the roadmap:
 - Declarative developer experience via a DSL
