@@ -573,10 +573,11 @@
 
 #?(:cljs
    (defn render [^js/Element parent-element vcup]
-     (let [{:keys [effects elements]} (process-vcup vcup)]
-       ;; Set all the elements as children of parent-element
-       (.apply (.-replaceChildren parent-element) parent-element (to-array elements))
-       ;; Run all the effects once
+     ;; Remove all the children
+     (.replaceChildren parent-element)
+
+     (let [{:keys [effects]} (process-vcup ($ parent-element vcup))]
+       ;; Run all the effects once, without using deref.
        (run! sr/run-if-needed effects)
 
        ;; Automatically refresh the DOM by re-running the effects which need a re-run.
