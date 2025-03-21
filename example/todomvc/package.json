@@ -1,0 +1,11 @@
+{
+  "name": "todomvc",
+  "private": true,
+  "scripts": {
+    "start": "npx shadow-cljs watch :app",
+    "release": "npx shadow-cljs release :app"
+  },
+  "devDependencies": {
+    "shadow-cljs": "^2.28.21"
+  }
+}
