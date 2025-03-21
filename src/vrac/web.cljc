@@ -168,6 +168,9 @@
          (= attribute-kw :ref)
          nil ;; no-op
 
+         (= attribute-kw :for)
+         (-> element (.setAttribute "for" attribute-value))
+
          (str/starts-with? attribute-name "on-")
          ;; Add an event listener
          (-> element (.addEventListener (-> attribute-name
@@ -197,6 +200,9 @@
 
          (= attribute-kw :ref)
          nil ;; no-op
+
+         (= attribute-kw :for)
+         (-> element (.removeAttribute "for"))
 
          (str/starts-with? attribute-name "on-")
          ;; Event listener
