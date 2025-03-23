@@ -192,7 +192,7 @@
    :dsl/global        {}})
 
 ;; Walks the AST to process it.
-(defn walk-ast [ast pre-process post-process]
+(defn walk-ast [env pre-process post-process]
   (let [walk (fn walk [original-env]
                (let [{:keys [root-ast path] :as env} (pre-process original-env)
                      ast (get-in root-ast path)
@@ -215,10 +215,12 @@
                      (assoc :original-env original-env)
                      post-process
                      (dissoc :original-env))))]
-    (-> (walk {:root-ast ast
-               :path     []
-               :symbol->value-path {}})
-        :root-ast)))
+    (walk env)))
+
+(defn make-env [ast]
+  {:root-ast ast
+   :path []
+   :symbol->value-path {}})
 
 (defn link-vars-pre-process [{:keys [root-ast path symbol->value-path] :as env}]
   (let [ast (get-in root-ast path)]
@@ -257,6 +259,7 @@
                      a (+ a 1)
                      b 2]
                  a))
+    make-env
     (walk-ast link-vars-pre-process
               symbol->value-path-post-process))
 
