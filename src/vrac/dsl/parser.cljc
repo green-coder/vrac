@@ -217,7 +217,7 @@
                      (dissoc :original-env))))]
     (walk env)))
 
-(defn make-env [ast]
+(defn ast->env [ast]
   {:root-ast ast
    :path []
    :symbol->value-path {}})
@@ -254,13 +254,38 @@
       ;; else
       env)))
 
+(defn find-var-usages-pre-process [{:keys [root-ast path] :as env}]
+  (let [ast (get-in root-ast path)]
+    (case (:node-type ast)
+      :clj/var
+      (let [value-path (:value-path ast)]
+        (-> env
+            (update-in [:value-path->usage-paths value-path] (fnil conj []) path)))
+
+      ;; else
+      env)))
+
+(defn find-var-usages-post-process [{:keys [root-ast path] :as env}]
+  (if (empty? path) ;; when we exit the root node
+    (let [value-path->usage-paths (:value-path->usage-paths env)]
+      (-> env
+          (assoc :root-ast (reduce (fn [root-ast [value-path usage-paths]]
+                                     (-> root-ast
+                                         (assoc-in (conj value-path :usage-paths) usage-paths)))
+                                   root-ast
+                                   value-path->usage-paths))
+          (dissoc :value-path->usage-paths)))
+    env))
+
 ;;#_
-(-> (dsl->ast `(let [a (dsl/signal 1)
-                     a (+ a 1)
-                     b 2]
-                 a))
-    make-env
+(-> `(let [a 1
+           a (inc a)]
+       (+ a a))
+    dsl->ast
+    ast->env
     (walk-ast link-vars-pre-process
-              symbol->value-path-post-process))
+              symbol->value-path-post-process)
+    (walk-ast find-var-usages-pre-process
+              find-var-usages-post-process))
 
 #_(diff *2 *1)
