@@ -1,0 +1,137 @@
+(ns vrac.dsl.parser-test
+  (:require [clojure.test :refer [deftest testing is are]]
+            [vrac.dsl :as-alias dsl]
+            [vrac.dsl.parser :as sut]))
+
+(deftest dsl->ast-test
+  (are [expected-ast dsl]
+    (= expected-ast (sut/dsl->ast dsl))
+
+    `{:node-type :clj/let
+      :bindings [{:node-type :clj/let-binding
+                  :symbol a
+                  :value {:node-type :clj/value
+                          :value 1}}]
+      :bodies [{:node-type :clj/var
+                :symbol a}]}
+    `(let [a 1]
+       a)
+
+    `{:node-type :dsl/signal
+      :body      {:node-type :clj/value
+                  :value     1}}
+    `(dsl/signal 1)
+
+    `{:node-type :dsl/state
+      :body      {:node-type :clj/value
+                  :value     1}}
+    `(dsl/state 1)
+
+    `{:node-type :clj/invocation
+      :function  +
+      :args      [{:node-type :clj/var
+                   :symbol    a}
+                  {:node-type :clj/var
+                   :symbol    b}]}
+    `(+ a b)
+
+    `{:node-type :dsl/memo
+      :body      {:node-type :clj/invocation
+                  :function  +
+                  :args      [{:node-type :clj/var
+                               :symbol    a}
+                              {:node-type :clj/var
+                               :symbol    b}]}}
+    `(dsl/memo (+ a b))
+
+    `{:node-type :dsl/snap
+      :body      {:node-type :clj/invocation
+                  :function  +
+                  :args      [{:node-type :clj/var
+                               :symbol    a}
+                              {:node-type :clj/var
+                               :symbol    b}]}}
+    `(dsl/snap (+ a b))
+
+    `{:node-type :clj/do
+      :bodies    [{:node-type :clj/invocation
+                   :function  prn
+                   :args      [{:node-type :clj/var
+                                :symbol    a}]}
+                  {:node-type :clj/var
+                   :symbol    a}]}
+    `(do (prn a)
+         a)
+
+    `{:node-type :clj/if
+      :cond      {:node-type :clj/value
+                  :value     true}
+      :then      {:node-type :clj/value
+                  :value     10}
+      :else      {:node-type :clj/value
+                  :value     20}}
+    `(if true 10 20)
+
+    `{:node-type :clj/when
+      :cond      {:node-type :clj/value
+                  :value     true}
+      :bodies    [{:node-type :clj/value
+                   :value     30}]}
+    `(when true 30)
+
+    `{:node-type :clj/for
+      :bindings  [{:node-type :clj/for-iteration
+                   :symbol    i
+                   :value     {:node-type :clj/vector
+                               :items     [{:node-type :clj/value
+                                            :value     1}
+                                           {:node-type :clj/value
+                                            :value     2}
+                                           {:node-type :clj/value
+                                            :value     3}]}}
+                  {:node-type :clj/for-let
+                   :bindings  [{:node-type :clj/let-binding
+                                :symbol    j
+                                :value     {:node-type :clj/value
+                                            :value     4}}]}
+                  {:node-type :clj/for-when
+                   :symbol    :when
+                   :value     {:node-type :clj/invocation
+                               :function  >
+                               :args      [{:node-type :clj/var
+                                            :symbol    a}
+                                           {:node-type :clj/value
+                                            :value     1}]}}
+                  {:node-type :clj/for-while
+                   :symbol    :while
+                   :value     {:node-type :clj/invocation
+                               :function  >
+                               :args      [{:node-type :clj/var
+                                            :symbol    b}
+                                           {:node-type :clj/value
+                                            :value     2}]}}]
+      :body      {:node-type :clj/value
+                  :value     10}}
+    `(for [i [1 2 3]
+           :let [j 4]
+           :when (> a 1)
+           :while (> b 2)]
+       10)
+
+    `{:node-type :dsl/effect
+      :bodies    [{:node-type :clj/invocation
+                   :function  prn
+                   :args      [{:node-type :clj/invocation
+                                :function  +
+                                :args      [{:node-type :clj/var
+                                             :symbol    a}
+                                            {:node-type :clj/var
+                                             :symbol    b}
+                                            {:node-type :clj/var
+                                             :symbol    c}
+                                            {:node-type :clj/var
+                                             :symbol    d}
+                                            {:node-type :clj/var
+                                             :symbol    e}]}]}]}
+    `(dsl/effect
+       (prn (+ a b c d e)))))
