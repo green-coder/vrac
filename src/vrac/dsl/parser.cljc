@@ -219,8 +219,7 @@
 
 (defn ast->env [ast]
   {:root-ast ast
-   :path []
-   :symbol->value-path {}})
+   :path []})
 
 (defn link-vars-pre-process [{:keys [root-ast path symbol->value-path] :as env}]
   (let [ast (get-in root-ast path)]
@@ -239,11 +238,6 @@
 (defn symbol->value-path-post-process [{:keys [root-ast path original-env] :as env}]
   (let [ast (get-in root-ast path)]
     (case (:node-type ast)
-      (:clj/let :clj/for)
-      (-> env
-          ;; Pop symbol->value-path back to its original state
-          (assoc :symbol->value-path (:symbol->value-path original-env)))
-
       :clj/let-binding
       (let [symbol (:symbol ast)]
         (-> env
@@ -251,10 +245,15 @@
             (update :symbol->value-path
                     assoc symbol (conj path :value))))
 
+      (:clj/let :clj/for)
+      (-> env
+          ;; Pop symbol->value-path back to its original state
+          (assoc :symbol->value-path (:symbol->value-path original-env)))
+
       ;; else
       env)))
 
-(defn find-var-usages-pre-process [{:keys [root-ast path] :as env}]
+(defn find-bound-value-usages-pre-process [{:keys [root-ast path] :as env}]
   (let [ast (get-in root-ast path)]
     (case (:node-type ast)
       :clj/var
@@ -265,17 +264,15 @@
       ;; else
       env)))
 
-(defn find-var-usages-post-process [{:keys [root-ast path] :as env}]
-  (if (empty? path) ;; when we exit the root node
-    (let [value-path->usage-paths (:value-path->usage-paths env)]
-      (-> env
-          (assoc :root-ast (reduce (fn [root-ast [value-path usage-paths]]
-                                     (-> root-ast
-                                         (assoc-in (conj value-path :usage-paths) usage-paths)))
-                                   root-ast
-                                   value-path->usage-paths))
-          (dissoc :value-path->usage-paths)))
-    env))
+(defn find-bound-value-usages-post-process [{:keys [root-ast] :as env}]
+  (let [value-path->usage-paths (:value-path->usage-paths env)]
+    (-> env
+        (assoc :root-ast (reduce (fn [root-ast [value-path usage-paths]]
+                                   (-> root-ast
+                                       (assoc-in (conj value-path :usage-paths) usage-paths)))
+                                 root-ast
+                                 value-path->usage-paths))
+        (dissoc :value-path->usage-paths))))
 
 ;;#_
 (-> `(let [a 1
@@ -283,9 +280,43 @@
        (+ a a))
     dsl->ast
     ast->env
+
+    ;; First pass
+    ((fn [env] (-> env (assoc :symbol->value-path {}))))
     (walk-ast link-vars-pre-process
               symbol->value-path-post-process)
-    (walk-ast find-var-usages-pre-process
-              find-var-usages-post-process))
+    ((fn [env] (-> env (dissoc :symbol->value-path))))
+
+
+    ;; Second pass
+    (walk-ast find-bound-value-usages-pre-process
+              identity)
+    find-bound-value-usages-post-process
+
+    ,)
+
+#_
+(def task
+  {:task-id :my-task-id
+   :steps [{:step-id :my-step-id
+            :deps [:other-step-id :other-task-id]
+            :root-pre-process nil
+            :pre-process nil
+            :post-process nil
+            :root-post-process nil}]})
+
+;;(def add-vars-value-path
+;;  {:task-id :task/add-vars-value-path
+;;   :steps   [{:step-id           :step/add-vars-value-path
+;;              :root-pre-process  (fn [env] (-> env (assoc :symbol->value-path {})))
+;;              :pre-process       link-vars-pre-process
+;;              :post-process      symbol->value-path-post-process
+;;              :root-post-process (fn [env] (-> env (dissoc :symbol->value-path)))}]})
+;;
+;;(def add-bound-value-usage
+;;  {:task-id :task/add-bound-value-usage
+;;   :steps   [{:step-id           :step/add-bound-value-usage
+;;              :pre-process       find-bound-value-usages-pre-process
+;;              :root-post-process find-bound-value-usages-post-process}]})
 
 #_(diff *2 *1)
