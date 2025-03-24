@@ -192,81 +192,81 @@
    :dsl/global        {}})
 
 ;; Walks the AST to process it.
-(defn walk-ast [env pre-process post-process]
-  (let [walk (fn walk [original-env]
-               (let [{:keys [root-ast path] :as env} (pre-process original-env)
+(defn walk-ast [context pre-process post-process]
+  (let [walk (fn walk [original-context]
+               (let [{:keys [root-ast path] :as context} (pre-process original-context)
                      ast (get-in root-ast path)
                      field->cardinality (-> ast :node-type node-type->walkable-children)
-                     env (reduce (fn [env [field cardinality]]
-                                   (case cardinality
-                                     :one (-> env
-                                              (assoc :path (conj path field))
-                                              walk)
-                                     :many (reduce (fn [env index]
-                                                     (-> env
-                                                         (assoc :path (conj path field index))
-                                                         walk))
-                                                   env
-                                                   (-> ast (get field) count range))))
-                                 env
-                                 field->cardinality)]
-                 (-> env
+                     context (reduce (fn [context [field cardinality]]
+                                       (case cardinality
+                                         :one (-> context
+                                                  (assoc :path (conj path field))
+                                                  walk)
+                                         :many (reduce (fn [context index]
+                                                         (-> context
+                                                             (assoc :path (conj path field index))
+                                                             walk))
+                                                       context
+                                                       (-> ast (get field) count range))))
+                                     context
+                                     field->cardinality)]
+                 (-> context
                      (assoc :path path)
-                     (assoc :original-env original-env)
+                     (assoc :original-context original-context)
                      post-process
-                     (dissoc :original-env))))]
-    (walk env)))
+                     (dissoc :original-context))))]
+    (walk context)))
 
-(defn ast->env [ast]
+(defn ast->context [ast]
   {:root-ast ast
    :path []})
 
-(defn link-vars-pre-process [{:keys [root-ast path symbol->value-path] :as env}]
+(defn link-vars-pre-process [{:keys [root-ast path symbol->value-path] :as context}]
   (let [ast (get-in root-ast path)]
     (case (:node-type ast)
       :clj/var
       (let [symbol (:symbol ast)
             value-path (symbol->value-path symbol)]
-        (assoc-in env (cons :root-ast path)
+        (assoc-in context (cons :root-ast path)
           (if (nil? value-path)
             (assoc ast :error (str "Symbol " symbol " is unbound"))
             (assoc ast :value-path value-path))))
 
       ;; else
-      env)))
+      context)))
 
-(defn symbol->value-path-post-process [{:keys [root-ast path original-env] :as env}]
+(defn symbol->value-path-post-process [{:keys [root-ast path original-context] :as context}]
   (let [ast (get-in root-ast path)]
     (case (:node-type ast)
       :clj/let-binding
       (let [symbol (:symbol ast)]
-        (-> env
+        (-> context
             ;; Curate symbol->value-path's content
             (update :symbol->value-path
                     assoc symbol (conj path :value))))
 
       (:clj/let :clj/for)
-      (-> env
+      (-> context
           ;; Pop symbol->value-path back to its original state
-          (assoc :symbol->value-path (:symbol->value-path original-env)))
+          (assoc :symbol->value-path (:symbol->value-path original-context)))
 
       ;; else
-      env)))
+      context)))
 
-(defn find-bound-value-usages-pre-process [{:keys [root-ast path] :as env}]
+(defn find-bound-value-usages-pre-process [{:keys [root-ast path] :as context}]
   (let [ast (get-in root-ast path)]
     (case (:node-type ast)
       :clj/var
       (let [value-path (:value-path ast)]
-        (-> env
+        (-> context
             (update-in [:value-path->usage-paths value-path] (fnil conj []) path)))
 
       ;; else
-      env)))
+      context)))
 
-(defn find-bound-value-usages-post-process [{:keys [root-ast] :as env}]
-  (let [value-path->usage-paths (:value-path->usage-paths env)]
-    (-> env
+(defn find-bound-value-usages-post-process [{:keys [root-ast] :as context}]
+  (let [value-path->usage-paths (:value-path->usage-paths context)]
+    (-> context
         (assoc :root-ast (reduce (fn [root-ast [value-path usage-paths]]
                                    (-> root-ast
                                        (assoc-in (conj value-path :usage-paths) usage-paths)))
@@ -279,19 +279,19 @@
            a (inc a)]
        (+ a a))
     dsl->ast
-    ast->env
+    ast->context
 
-    ;; First pass
-    ((fn [env] (-> env (assoc :symbol->value-path {}))))
+    ;; Macro expansion & symbol resolution
+    ((fn [context] (-> context (assoc :symbol->value-path {}))))
     (walk-ast link-vars-pre-process
               symbol->value-path-post-process)
-    ((fn [env] (-> env (dissoc :symbol->value-path))))
+    ((fn [context] (-> context (dissoc :symbol->value-path))))
 
 
-    ;; Second pass
-    (walk-ast find-bound-value-usages-pre-process
-              identity)
-    find-bound-value-usages-post-process
+    ;; Usage pass
+    ;;(walk-ast find-bound-value-usages-pre-process
+    ;;          identity)
+    ;;find-bound-value-usages-post-process
 
     ,)
 
@@ -308,10 +308,10 @@
 ;;(def add-vars-value-path
 ;;  {:task-id :task/add-vars-value-path
 ;;   :steps   [{:step-id           :step/add-vars-value-path
-;;              :root-pre-process  (fn [env] (-> env (assoc :symbol->value-path {})))
+;;              :root-pre-process  (fn [context] (-> context (assoc :symbol->value-path {})))
 ;;              :pre-process       link-vars-pre-process
 ;;              :post-process      symbol->value-path-post-process
-;;              :root-post-process (fn [env] (-> env (dissoc :symbol->value-path)))}]})
+;;              :root-post-process (fn [context] (-> context (dissoc :symbol->value-path)))}]})
 ;;
 ;;(def add-bound-value-usage
 ;;  {:task-id :task/add-bound-value-usage
