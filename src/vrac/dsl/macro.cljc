@@ -29,15 +29,28 @@
 
 #_ (thread-last `(->> x (+ 2) prn))
 
+(defn thread-as [[_ expr name & forms]]
+  `(let [~name ~expr
+         ~@(interleave (repeat name) (butlast forms))]
+     ~(if (empty? forms)
+        name
+        (last forms))))
+
+#_ (thread-as `(as-> (+ 1 2) y
+                 (+ y 3)
+                 (+ y 4)))
+
 (defn expand-let [[_ bindings & bodies :as original-form]]
   ;; TODO: expand the destructurations in the let bindings.
+  original-form
+  #_
   (if (> (count bodies) 1)
     `(let ~bindings
        (do ~@bodies))
     original-form))
 
-#_ (let-do `(let [a 1] a))
-#_ (let-do `(let [a 1] a a))
+#_ (expand-let `(let [a 1] a))
+#_ (expand-let `(let [a 1] a a))
 
 (defn expand-when [[_ cond & bodies :as original-form]]
   (if (> (count bodies) 1)
@@ -45,8 +58,8 @@
        (do ~@bodies))
     original-form))
 
-#_ (when-do `(when true 1))
-#_ (when-do `(when true 1 2))
+#_ (expand-when `(when true 1))
+#_ (expand-when `(when true 1 2))
 
 (defn expand-for [[:as original-form]]
   ;; TODO: expand the destructurations in the let bindings.
@@ -55,11 +68,12 @@
 (def macros
   {`-> thread-first
    `->> thread-last
+   `as-> thread-as
    `let expand-let
-   `when expand-when
+   ;;`when expand-when
    `for expand-for})
 
-(defn dsl-expand [dsl-form]
+(defn expand-dsl [dsl-form]
   (walk/prewalk (fn [x]
                   (if (and (seq? x)
                            (seq x))
@@ -74,4 +88,4 @@
                     x))
                 dsl-form))
 
-#_ (dsl-expand `(-> x (+ 2) prn))
+#_ (expand-dsl `(-> x (+ 2) prn))
