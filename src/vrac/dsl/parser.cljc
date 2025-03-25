@@ -1,7 +1,76 @@
 (ns vrac.dsl.parser
   (:require [mate.core :as mc]
             [lambdaisland.deep-diff2 :refer [diff]]
-            [vrac.dsl :as-alias dsl]))
+            [vrac.dsl :as-alias dsl]
+            [vrac.dsl.macro :as macro]))
+
+(defn- resolve-var [x bound-vars]
+  (if (contains? bound-vars x)
+    x
+    (symbol (resolve x))))
+
+;; Macro-expand and resolve the symbols in the DSL.
+(defn macro-expand-and-resolve-dsl [x macros bound-vars]
+  (cond
+    (seq? x)
+    (if (zero? (count x))
+      x
+      (let [[f & args] x
+            expanded-f (macro-expand-and-resolve-dsl f macros bound-vars)
+            x (cons expanded-f args)
+            macro-fn (get macros expanded-f)
+            expanded-form (if (nil? macro-fn)
+                            x
+                            (macro-fn x))]
+        (if-not (identical? x expanded-form)
+          (recur expanded-form macros bound-vars)
+          (let [[f & args] x]
+            (cond
+              ;; (let [,,,] ,,,)
+              (= f `let)
+              (let [[bindings & bodies] args
+                    [bindings bound-vars] (reduce (fn [[bindings bound-vars] [symbol-form value-form]]
+                                                    [(conj bindings symbol-form (macro-expand-and-resolve-dsl value-form macros bound-vars))
+                                                     (conj bound-vars symbol-form)])
+                                                  [[] bound-vars]
+                                                  (partition 2 bindings))
+                    bodies (map (mc/partial-> macro-expand-and-resolve-dsl macros bound-vars) bodies)]
+                `(let ~bindings ~@bodies))
+
+              ;; (for [,,,] ,,,)
+              (= f `for)
+              (let [[bindings body] args]
+                ;; TODO: implement this later.
+                ,)
+
+              ;; (f a b c)
+              :else
+              `(~expanded-f ~@(map (mc/partial-> macro-expand-and-resolve-dsl macros bound-vars) args)))))))
+
+    (symbol? x)
+    (resolve-var x bound-vars)
+
+    (vector? x)
+    (mapv (mc/partial-> macro-expand-and-resolve-dsl macros bound-vars) x)
+
+    (map? x)
+    (-> x
+        (update-keys (mc/partial-> macro-expand-and-resolve-dsl macros bound-vars))
+        (update-vals (mc/partial-> macro-expand-and-resolve-dsl macros bound-vars)))
+
+    (set? x)
+    (set (map (mc/partial-> macro-expand-and-resolve-dsl macros bound-vars) x))
+
+    :else
+    x))
+
+#_
+(-> '(let [a 1
+           b 2]
+       (-> a
+           (+ b 3)
+           prn))
+    (macro-expand-and-resolve-dsl macro/macros #{}))
 
 ;; Shallow transformation from a DSL expression to an AST.
 (defn dsl->ast [x]
