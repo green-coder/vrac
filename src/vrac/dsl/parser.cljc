@@ -41,8 +41,24 @@
 
                                          ;; (for [,,,] ,,,)
                                          (= f `for)
-                                         (let [[bindings body] args]
-                                           ;; TODO: implement this later.
+                                         (let [[bindings body] args
+                                               [bindings local-vars] (reduce (fn [[bindings local-vars] [symbol-form value-form]]
+                                                                               (case symbol-form
+                                                                                 :let (let [[let-bindings local-vars] (reduce (fn [[bindings local-vars] [symbol-form value-form]]
+                                                                                                                                [(conj bindings symbol-form (resolve-and-expand value-form local-vars))
+                                                                                                                                 (conj local-vars symbol-form)])
+                                                                                                                              [[] local-vars]
+                                                                                                                              (partition 2 value-form))]
+                                                                                        [(conj bindings :let let-bindings)
+                                                                                         local-vars])
+                                                                                 (:when :while) [(conj bindings symbol-form (resolve-and-expand value-form local-vars))
+                                                                                                 local-vars]
+                                                                                 [(conj bindings symbol-form (resolve-and-expand value-form local-vars))
+                                                                                  (conj local-vars symbol-form)]))
+                                                                             [[] local-vars]
+                                                                             (partition 2 bindings))
+                                               body (resolve-and-expand body local-vars)]
+                                           `(for ~bindings ~body)
                                            ,)
 
                                          ;; (f a b c)
@@ -66,6 +82,15 @@
                                :else
                                x))]
     (resolve-and-expand x #{})))
+
+#_
+(-> '(for [a [1 2 3]
+           :let [b (+ a 100)
+                 {:keys [x y] :as m} {:x a
+                                      :y b}]
+           :when (< a b x y)]
+          [a b x y])
+    (resolve-and-macro-expand-dsl {} macro/macros))
 
 #_
 (-> '(let [a 1
