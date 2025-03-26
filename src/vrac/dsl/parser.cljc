@@ -153,28 +153,28 @@
           ;; (for [,,,] ,,,)
           (= f `for)
           (let [[bindings body] args]
-            {:node-type     :clj/for
-             :bindings (->> bindings
-                            (partition 2)
-                            (mapv (fn [[symbol value]]
-                                    (case symbol
-                                      :let {:node-type     :clj/for-let
-                                            :bindings (->> value
-                                                           (partition 2)
-                                                           (mapv (fn [[symbol value]]
-                                                                   {:node-type :clj/let-binding
-                                                                    :symbol symbol
-                                                                    :value (dsl->ast value)})))}
-                                      :when {:node-type   :clj/for-when
-                                             :symbol symbol
-                                             :value  (dsl->ast value)}
-                                      :while {:node-type   :clj/for-while
-                                              :symbol symbol
-                                              :value  (dsl->ast value)}
-                                      {:node-type   :clj/for-iteration
-                                       :symbol symbol
-                                       :value  (dsl->ast value)}))))
-             :body     (dsl->ast body)})
+            {:node-type :clj/for
+             :bindings  (->> bindings
+                             (partition 2)
+                             (mapv (fn [[symbol value]]
+                                     (case symbol
+                                       :let {:node-type :clj/for-let
+                                             :bindings  (->> value
+                                                             (partition 2)
+                                                             (mapv (fn [[symbol value]]
+                                                                     {:node-type :clj/let-binding
+                                                                      :symbol symbol
+                                                                      :value (dsl->ast value)})))}
+                                       :when {:node-type :clj/for-when
+                                              :symbol    symbol
+                                              :value     (dsl->ast value)}
+                                       :while {:node-type :clj/for-while
+                                               :symbol    symbol
+                                               :value     (dsl->ast value)}
+                                       {:node-type :clj/for-iteration
+                                        :symbol    symbol
+                                        :value     (dsl->ast value)}))))
+             :body      (dsl->ast body)})
 
           ;; signal
           (= f `dsl/signal)
