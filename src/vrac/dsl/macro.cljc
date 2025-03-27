@@ -76,6 +76,22 @@
                                              (contains? #{:as :or} k)
                                              nil
 
+                                             (= :& k)
+                                             (let [kws (->> k-form
+                                                            (mapcat (fn [[k v]]
+                                                                      (cond
+                                                                        (simple-symbol? k)
+                                                                        [v]
+
+                                                                        (and (keyword? k)
+                                                                             (= (name k) "keys"))
+                                                                        (->> v
+                                                                             (mapv (fn [s]
+                                                                                     (keyword (or (namespace s) (namespace k))
+                                                                                              (name s))))))))
+                                                            distinct)]
+                                               [v `(dissoc ~v-symb ~@kws)])
+
                                              (and (keyword? k)
                                                   (= (name k) "keys"))
                                              (let [k-ns (namespace k)
@@ -116,6 +132,12 @@
                               q :qq-default
                               s :ss-default}
                    :as       xx} x])
+
+#_ (destructure '[{a :a
+                   :keys [b c]
+                   :foo/keys [bar baz]
+                   :& rest
+                   :as x} y])
 
 #_ (destructure '[{a        :aa
                    {c   :cc
