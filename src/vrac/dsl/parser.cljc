@@ -1,15 +1,20 @@
 (ns vrac.dsl.parser
   (:require [mate.core :as mc]
             [lambdaisland.deep-diff2 :refer [diff]]
-            [vrac.dsl :as-alias dsl]
+            [vrac.dsl :as dsl]
             [vrac.dsl.macro :as macro]))
+
+;; Those are not functions or vars, they can't be resolved, so
+;; we treat them as special cases which resolve to themselves.
+(def clj-reserved-words
+  '{do do
+    if if})
 
 ;; Macro-expand and resolve the symbols in the DSL.
 ;; var-resolver is a function which can be used for user-defined global variable resolution.
 (defn resolve-and-macro-expand-dsl
   ([x] (resolve-and-macro-expand-dsl x
-                                     '{do do
-                                       if if}
+                                     clj-reserved-words
                                      macro/macros))
   ([x var-resolver macros]
    (let [resolve-var (fn [x local-vars]
@@ -247,19 +252,21 @@
      :value x}))
 
 #_
-(dsl->ast `(let [a (dsl/signal 1)
-                 b (dsl/state 2)
-                 c (+ a b)
-                 d (dsl/memo (+ a b))
-                 e (dsl/snap (+ a b))]
-             (do
-               (for [i [1 2 3]
-                     :let [j (inc i)]]
-                 (+ i j 10))
-               (if true 10 20)
-               (when true 30)
-               (dsl/effect
-                 (prn (+ a b c d e))))))
+(-> '(let [a (dsl/signal 1)
+           b (dsl/state 2)
+           c (+ a b)
+           d (dsl/memo (+ a b))
+           e (dsl/snap (+ a b))]
+       (do
+         (for [i [1 2 3]
+               :let [j (inc i)]]
+           (+ i j 10))
+         (if true 10 20)
+         (when true 30)
+         (dsl/effect
+           (prn (+ a b c d e)))))
+    resolve-and-macro-expand-dsl
+    dsl->ast)
 
 ;; node-type -> child-node -> #{:one :many}
 (def node-type->walkable-children
@@ -379,9 +386,10 @@
         (dissoc :value-path->usage-paths))))
 
 ;;#_
-(-> `(let [a 1
+(-> '(let [a 1
            a (inc a)]
        (+ a a))
+    resolve-and-macro-expand-dsl
     dsl->ast
     ast->context
 
