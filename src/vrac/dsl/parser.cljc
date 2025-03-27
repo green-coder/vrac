@@ -1,4 +1,5 @@
 (ns vrac.dsl.parser
+  #?(:cljs (:require-macros [vrac.dsl.parser]))
   (:require [mate.core :as mc]
             [lambdaisland.deep-diff2 :refer [diff]]
             [vrac.dsl :as dsl]
@@ -17,14 +18,15 @@
 #?(:clj
    (defn resolve-and-macro-expand-dsl
      ([x] (resolve-and-macro-expand-dsl x
+                                        nil
                                         clj-reserved-words
                                         macro/macros))
-     ([x var-resolver macros]
+     ([x env var-resolver macros]
       (let [resolve-var (fn [x local-vars]
                           (if (contains? local-vars x)
                             x
                             (or (var-resolver x)
-                                (let [resolved-x (resolve x)]
+                                (let [resolved-x (resolve env x)]
                                   (assert (some? resolved-x) (str "Cannot resolve the symbol \"" x "\""))
                                   (symbol resolved-x)))))
             resolve-and-expand (fn resolve-and-expand [x local-vars]
@@ -97,6 +99,14 @@
                                    :else
                                    x))]
         (resolve-and-expand x #{})))))
+
+#?(:clj
+   (defmacro expand-dsl [quoted-dsl-form]
+     (let [env &env]
+       (resolve-and-macro-expand-dsl quoted-dsl-form
+                                     env
+                                     clj-reserved-words
+                                     macro/macros))))
 
 ;; Shallow transformation from a DSL expression to an AST.
 (defn dsl->ast [x]

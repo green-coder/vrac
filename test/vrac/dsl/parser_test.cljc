@@ -4,33 +4,30 @@
             [vrac.dsl.parser :as sut]))
 
 #?(:clj
-   (deftest resolve-and-macro-expand-dsl-test
-     (are [resolved-and-expanded-form form]
-       (= resolved-and-expanded-form (sut/resolve-and-macro-expand-dsl form))
+   (deftest expand-dsl-test
+     (is (= `(let [~'a 1
+                   ~'b 2]
+               (prn (+ ~'a ~'b 3)))
+            (sut/expand-dsl '(let [a 1
+                                   b 2]
+                               (-> a
+                                   (+ b 3)
+                                   prn)))))
 
-       `(let [~'a 1
-              ~'b 2]
-          (prn (+ ~'a ~'b 3)))
-       '(let [a 1
-              b 2]
-          (-> a
-              (+ b 3)
-              prn))
-
-       `(for [~'a [1 2 3]
-              :let [~'b (+ ~'a 100)
-                    ~'m {:x ~'a
-                         :y ~'b}
-                    ~'x (:x ~'m)
-                    ~'y (:y ~'m)]
-              :when (< ~'a ~'b ~'x ~'y)]
-          [~'a ~'b ~'x ~'y])
-       '(for [a [1 2 3]
-              :let [b (+ a 100)
-                    {:keys [x y] :as m} {:x a
-                                         :y b}]
-              :when (< a b x y)]
-             [a b x y]))))
+     (is (= `(for [~'a [1 2 3]
+                   :let [~'b (+ ~'a 100)
+                         ~'m {:x ~'a
+                              :y ~'b}
+                         ~'x (:x ~'m)
+                         ~'y (:y ~'m)]
+                   :when (< ~'a ~'b ~'x ~'y)]
+               [~'a ~'b ~'x ~'y])
+            (sut/expand-dsl '(for [a [1 2 3]
+                                   :let [b (+ a 100)
+                                         {:keys [x y] :as m} {:x a
+                                                              :y b}]
+                                   :when (< a b x y)]
+                                  [a b x y]))))))
 
 (deftest dsl->ast-test
   (are [expected-ast dsl]
