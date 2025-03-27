@@ -14,8 +14,6 @@
                  `(~form ~x))
                (next forms))))))
 
-#_ (thread-first `(-> x (+ 2) prn))
-
 (defn thread-last [[_ x & forms]]
   (loop [x x
          forms (seq forms)]
@@ -28,18 +26,12 @@
                  `(~form ~x))
                (next forms))))))
 
-#_ (thread-last `(->> x (+ 2) prn))
-
 (defn thread-as [[_ expr name & forms]]
   `(let [~name ~expr
          ~@(interleave (repeat name) (butlast forms))]
      ~(if (empty? forms)
         name
         (last forms))))
-
-#_ (thread-as `(as-> (+ 1 2) y
-                 (+ y 3)
-                 (+ y 4)))
 
 (defn- destructure [bindings]
   (let [pairs (partition 2 bindings)]
@@ -120,46 +112,11 @@
                          [k-form v-form]))]
         (into [] (mapcat destruct) pairs)))))
 
-#_ (destructure '[[a b c & rest :as d] x])
-
-#_ (destructure '[{a         :aa
-                   b         :bb
-                   :keys     [i j foo/k foo/l]
-                   :bar/keys [p q foo/r foo/s]
-                   :or       {b :bb-default
-                              j :jj-default
-                              l :ll-default
-                              q :qq-default
-                              s :ss-default}
-                   :as       xx} x])
-
-#_ (destructure '[{a :a
-                   :keys [b c]
-                   :foo/keys [bar baz]
-                   :& rest
-                   :as x} y])
-
-#_ (destructure '[{a        :aa
-                   {c   :cc
-                    d   :dd
-                    :as bb} :bb
-                   :as      xx} x])
-
-#_ (destructure '[{[a1 a2]      :aa
-                   {[c1 c2] :cc
-                    :as     bb} :bb
-                   :as          xx} x])
-
-#_ (destructure '[[{a :a} {b :b} :as xx] x])
-
-
 (defn expand-let-bindings [[_ bindings & bodies :as original-form]]
   (let [destructured-bindings (destructure bindings)]
     (if (identical? destructured-bindings bindings)
       original-form
       `(let ~destructured-bindings ~@bodies))))
-
-#_ (expand-let-bindings `(let [~'{a :a} {:a 1}] ~'a))
 
 (defn expand-for-bindings [[_ bindings body :as original-form]]
   (let [new-bindings (->> (partition 2 bindings)
@@ -179,10 +136,6 @@
                   (every? (fn [[new-x x]] (identical? new-x x)))))
       original-form
       `(for ~new-bindings ~body))))
-
-#_ (expand-for-bindings `(for [~'[a b] ~[[1 2] [3 4]]
-                               :let [~'[c d] ~'[10 20]]]
-                           ~'[a b c d]))
 
 (def macros
   {`->   thread-first
