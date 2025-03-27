@@ -5,29 +5,31 @@
 
 #?(:clj
    (deftest expand-dsl-test
-     (is (= `(let [~'a 1
-                   ~'b 2]
-               (prn (+ ~'a ~'b 3)))
-            (sut/expand-dsl '(let [a 1
-                                   b 2]
-                               (-> a
-                                   (+ b 3)
-                                   prn)))))
+     (testing "expansion of the -> macro and symbol resolution in `let`"
+       (is (= `(let [~'a 1
+                     ~'b 2]
+                 (prn (+ ~'a ~'b 3)))
+              (sut/expand-dsl '(let [a 1
+                                     b 2]
+                                 (-> a
+                                     (+ b 3)
+                                     prn))))))
 
-     (is (= `(for [~'a [1 2 3]
-                   :let [~'b (+ ~'a 100)
-                         ~'m {:x ~'a
-                              :y ~'b}
-                         ~'x (:x ~'m)
-                         ~'y (:y ~'m)]
-                   :when (< ~'a ~'b ~'x ~'y)]
-               [~'a ~'b ~'x ~'y])
-            (sut/expand-dsl '(for [a [1 2 3]
-                                   :let [b (+ a 100)
-                                         {:keys [x y] :as m} {:x a
-                                                              :y b}]
-                                   :when (< a b x y)]
-                                  [a b x y]))))))
+     (testing "destructuring in `for`"
+       (is (= `(for [~'a [1 2 3]
+                     :let [~'b (+ ~'a 100)
+                           ~'m {:x ~'a
+                                :y ~'b}
+                           ~'x (:x ~'m)
+                           ~'y (:y ~'m)]
+                     :when (< ~'a ~'b ~'x ~'y)]
+                 [~'a ~'b ~'x ~'y])
+              (sut/expand-dsl '(for [a [1 2 3]
+                                     :let [b (+ a 100)
+                                           {:keys [x y] :as m} {:x a
+                                                                :y b}]
+                                     :when (< a b x y)]
+                                    [a b x y])))))))
 
 (deftest dsl->ast-test
   (are [expected-ast dsl]
