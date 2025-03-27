@@ -6,111 +6,97 @@
 
 ;; Those are not functions or vars, they can't be resolved, so
 ;; we treat them as special cases which resolve to themselves.
-(def clj-reserved-words
-  '{do do
-    if if})
+#?(:clj
+   (def clj-reserved-words
+     '{do do
+       if if
+       quote quote}))
 
 ;; Macro-expand and resolve the symbols in the DSL.
 ;; var-resolver is a function which can be used for user-defined global variable resolution.
-(defn resolve-and-macro-expand-dsl
-  ([x] (resolve-and-macro-expand-dsl x
-                                     clj-reserved-words
-                                     macro/macros))
-  ([x var-resolver macros]
-   (let [resolve-var (fn [x local-vars]
-                       (if (contains? local-vars x)
-                         x
-                         (or (var-resolver x)
-                             (let [resolved-x (resolve x)]
-                               (assert (some? resolved-x) (str "Cannot resolve the symbol \"" x "\""))
-                               (symbol resolved-x)))))
-         resolve-and-expand (fn resolve-and-expand [x local-vars]
-                              (cond
-                                (seq? x)
-                                (if (zero? (count x))
-                                  x
-                                  (let [[f & args] x
-                                        expanded-f (resolve-and-expand f local-vars)
-                                        x (cons expanded-f args)
-                                        macro-fn (get macros expanded-f)
-                                        expanded-form (if (nil? macro-fn)
-                                                        x
-                                                        (macro-fn x))]
-                                    (if-not (identical? x expanded-form)
-                                      (recur expanded-form local-vars)
-                                      (let [[f & args] x]
-                                        (cond
-                                          ;; (let [,,,] ,,,)
-                                          (= f `let)
-                                          (let [[bindings & bodies] args
-                                                [bindings local-vars] (reduce (fn [[bindings local-vars] [symbol-form value-form]]
-                                                                                [(conj bindings symbol-form (resolve-and-expand value-form local-vars))
-                                                                                 (conj local-vars symbol-form)])
-                                                                              [[] local-vars]
-                                                                              (partition 2 bindings))
-                                                bodies (map (mc/partial-> resolve-and-expand local-vars) bodies)]
-                                            `(let ~bindings ~@bodies))
+#?(:clj
+   (defn resolve-and-macro-expand-dsl
+     ([x] (resolve-and-macro-expand-dsl x
+                                        clj-reserved-words
+                                        macro/macros))
+     ([x var-resolver macros]
+      (let [resolve-var (fn [x local-vars]
+                          (if (contains? local-vars x)
+                            x
+                            (or (var-resolver x)
+                                (let [resolved-x (resolve x)]
+                                  (assert (some? resolved-x) (str "Cannot resolve the symbol \"" x "\""))
+                                  (symbol resolved-x)))))
+            resolve-and-expand (fn resolve-and-expand [x local-vars]
+                                 (cond
+                                   (seq? x)
+                                   (if (zero? (count x))
+                                     x
+                                     (let [[f & args] x
+                                           expanded-f (resolve-and-expand f local-vars)
+                                           x (cons expanded-f args)
+                                           macro-fn (get macros expanded-f)
+                                           expanded-form (if (nil? macro-fn)
+                                                           x
+                                                           (macro-fn x))]
+                                       (if-not (identical? x expanded-form)
+                                         (recur expanded-form local-vars)
+                                         (let [[f & args] x]
+                                           (cond
+                                             ;; (let [,,,] ,,,)
+                                             (= f `let)
+                                             (let [[bindings & bodies] args
+                                                   [bindings local-vars] (reduce (fn [[bindings local-vars] [symbol-form value-form]]
+                                                                                   [(conj bindings symbol-form (resolve-and-expand value-form local-vars))
+                                                                                    (conj local-vars symbol-form)])
+                                                                                 [[] local-vars]
+                                                                                 (partition 2 bindings))
+                                                   bodies (map (mc/partial-> resolve-and-expand local-vars) bodies)]
+                                               `(let ~bindings ~@bodies))
 
-                                          ;; (for [,,,] ,,,)
-                                          (= f `for)
-                                          (let [[bindings body] args
-                                                [bindings local-vars] (reduce (fn [[bindings local-vars] [symbol-form value-form]]
-                                                                                (case symbol-form
-                                                                                  :let (let [[let-bindings local-vars] (reduce (fn [[bindings local-vars] [symbol-form value-form]]
-                                                                                                                                 [(conj bindings symbol-form (resolve-and-expand value-form local-vars))
-                                                                                                                                  (conj local-vars symbol-form)])
-                                                                                                                               [[] local-vars]
-                                                                                                                               (partition 2 value-form))]
-                                                                                         [(conj bindings :let let-bindings)
-                                                                                          local-vars])
-                                                                                  (:when :while) [(conj bindings symbol-form (resolve-and-expand value-form local-vars))
-                                                                                                  local-vars]
-                                                                                  [(conj bindings symbol-form (resolve-and-expand value-form local-vars))
-                                                                                   (conj local-vars symbol-form)]))
-                                                                              [[] local-vars]
-                                                                              (partition 2 bindings))
-                                                body (resolve-and-expand body local-vars)]
-                                            `(for ~bindings ~body)
-                                            ,)
+                                             ;; (for [,,,] ,,,)
+                                             (= f `for)
+                                             (let [[bindings body] args
+                                                   [bindings local-vars] (reduce (fn [[bindings local-vars] [symbol-form value-form]]
+                                                                                   (case symbol-form
+                                                                                     :let (let [[let-bindings local-vars] (reduce (fn [[bindings local-vars] [symbol-form value-form]]
+                                                                                                                                    [(conj bindings symbol-form (resolve-and-expand value-form local-vars))
+                                                                                                                                     (conj local-vars symbol-form)])
+                                                                                                                                  [[] local-vars]
+                                                                                                                                  (partition 2 value-form))]
+                                                                                            [(conj bindings :let let-bindings)
+                                                                                             local-vars])
+                                                                                     (:when :while) [(conj bindings symbol-form (resolve-and-expand value-form local-vars))
+                                                                                                     local-vars]
+                                                                                     [(conj bindings symbol-form (resolve-and-expand value-form local-vars))
+                                                                                      (conj local-vars symbol-form)]))
+                                                                                 [[] local-vars]
+                                                                                 (partition 2 bindings))
+                                                   body (resolve-and-expand body local-vars)]
+                                               `(for ~bindings ~body)
+                                               ,)
 
-                                          ;; (f a b c)
-                                          :else
-                                          `(~expanded-f ~@(map (mc/partial-> resolve-and-expand local-vars) args)))))))
+                                             ;; (f a b c)
+                                             :else
+                                             `(~expanded-f ~@(map (mc/partial-> resolve-and-expand local-vars) args)))))))
 
-                                (symbol? x)
-                                (resolve-var x local-vars)
+                                   (symbol? x)
+                                   (resolve-var x local-vars)
 
-                                (vector? x)
-                                (mapv (mc/partial-> resolve-and-expand local-vars) x)
+                                   (vector? x)
+                                   (mapv (mc/partial-> resolve-and-expand local-vars) x)
 
-                                (map? x)
-                                (-> x
-                                    (update-keys (mc/partial-> resolve-and-expand local-vars))
-                                    (update-vals (mc/partial-> resolve-and-expand local-vars)))
+                                   (map? x)
+                                   (-> x
+                                       (update-keys (mc/partial-> resolve-and-expand local-vars))
+                                       (update-vals (mc/partial-> resolve-and-expand local-vars)))
 
-                                (set? x)
-                                (set (map (mc/partial-> resolve-and-expand local-vars) x))
+                                   (set? x)
+                                   (set (map (mc/partial-> resolve-and-expand local-vars) x))
 
-                                :else
-                                x))]
-     (resolve-and-expand x #{}))))
-
-#_
-(-> '(for [a [1 2 3]
-           :let [b (+ a 100)
-                 {:keys [x y] :as m} {:x a
-                                      :y b}]
-           :when (< a b x y)]
-          [a b x y])
-    resolve-and-macro-expand-dsl)
-
-#_
-(-> '(let [a 1
-           b 2]
-       (-> a
-           (+ b 3)
-           prn))
-    resolve-and-macro-expand-dsl)
+                                   :else
+                                   x))]
+        (resolve-and-expand x #{})))))
 
 ;; Shallow transformation from a DSL expression to an AST.
 (defn dsl->ast [x]
@@ -385,7 +371,7 @@
                                  value-path->usage-paths))
         (dissoc :value-path->usage-paths))))
 
-;;#_
+#_
 (-> '(let [a 1
            a (inc a)]
        (+ a a))
