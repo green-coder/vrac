@@ -24,8 +24,10 @@
    :clj/var           {}
    :clj/value         {}
    :clj/set           {}
-   :clj/vector        {}
-   :clj/map           {}
+   :clj/vector        {:items :many}
+   :clj/map           {:entries :many}
+   :clj/map-entry     {:key   :one
+                       :value :one}
    :dsl/with-context  {:context :one
                        :bodies  :many}
    :dsl/signal        {:body :one}

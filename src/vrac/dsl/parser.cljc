@@ -237,9 +237,11 @@
 
     (map? x)
     {:node-type :clj/map
-     :entries (-> x
-                  (update-keys dsl->ast)
-                  (update-vals dsl->ast))}
+     :entries (->> x
+                   (mapv (fn [[k v]]
+                           {:node-type :clj/map-entry
+                            :key (dsl->ast k)
+                            :value (dsl->ast v)})))}
 
     (= x `dsl/context)
     {:node-type :dsl/context}
