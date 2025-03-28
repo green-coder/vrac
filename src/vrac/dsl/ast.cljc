@@ -37,7 +37,7 @@
    :dsl/global        {}})
 
 (defn walk-ast
-  "Walks the AST to process it."
+  "Walks and transforms a context containing the AST."
   [context pre-process post-process]
   (let [walk (fn walk [original-context]
                (let [{:keys [root-ast path] :as context} (pre-process original-context)
@@ -66,6 +66,8 @@
 (defn ast->context [ast]
   {:root-ast ast
    :path []})
+
+;; -----------------------------------
 
 (defn link-vars-pre-process [{:keys [root-ast path symbol->value-path] :as context}]
   (let [ast (get-in root-ast path)]
