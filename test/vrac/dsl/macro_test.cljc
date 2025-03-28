@@ -1,15 +1,7 @@
 (ns vrac.dsl.macro-test
   (:require [clojure.test :refer [deftest testing is are]]
-            [vrac.dsl.macro :as sut]))
-
-(defn- make-gensym
-  "Provides a function which returns symbols consistently & deterministically."
-  []
-  (let [n (atom 1)]
-    (fn gensym
-      ([] (gensym "G__"))
-      ([prefix-string]
-       (symbol (str prefix-string (swap! n inc)))))))
+            [vrac.dsl.macro :as sut]
+            [vrac.test.util :refer [make-gensym]]))
 
 (deftest thread-first-test
   (is (= `(prn (+ ~'a 1))
