@@ -47,5 +47,42 @@
                          vec))
                   parser/resolve-and-macro-expand-dsl
                   parser/dsl->ast
-                  sut/ast->context
+                  sut/make-context
                   (sut/walk-ast pre-process post-process)))))))
+
+#?(:clj
+   (deftest link-vars-to-their-definition-pass-test
+     (is (= {:root-ast {:node-type :clj/let
+                        :bindings  [{:node-type :clj/let-binding
+                                     :symbol    'a
+                                     :value     {:node-type :clj/value
+                                                 :value     1}}
+                                    {:node-type :clj/let-binding
+                                     :symbol    'b
+                                     :value     {:node-type :clj/value
+                                                 :value     2}}]
+                        :bodies    [{:node-type :clj/vector
+                                     :items     [{:node-type      :clj/var
+                                                  :symbol         'a
+                                                  :var.value/path [:bindings 0 :value]}]}
+                                    {:node-type :clj/map
+                                     :entries   [{:node-type :clj/map-entry
+                                                  :key {:node-type      :clj/var
+                                                        :symbol         'a
+                                                        :var.value/path [:bindings 0 :value]}
+                                                  :value {:node-type      :clj/var
+                                                          :symbol         'b
+                                                          :var.value/path [:bindings 1 :value]}}]}
+                                    {:node-type      :clj/var
+                                     :symbol         'a
+                                     :var.value/path [:bindings 0 :value]}]}
+             :path     []}
+            (-> '(let [a 1
+                       b 2]
+                   [a]
+                   {a b}
+                   a)
+                parser/resolve-and-macro-expand-dsl
+                parser/dsl->ast
+                sut/make-context
+                sut/link-vars-to-their-definition-pass)))))

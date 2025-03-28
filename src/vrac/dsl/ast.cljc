@@ -65,13 +65,18 @@
                      (dissoc :original-context))))]
     (walk context)))
 
-(defn ast->context [ast]
+(defn make-context
+  "Returns an initial context from a given AST."
+  [ast]
   {:root-ast ast
    :path []})
 
 ;; -----------------------------------
 
-(defn link-vars-pre-process [{:keys [root-ast path symbol->value-path] :as context}]
+(defn- link-vars-pre-process
+  "On each var node, assoc :var.value/path to point where its value is defined.
+   Assoc an :error instead if the var is unbound."
+  [{:keys [root-ast path symbol->value-path] :as context}]
   (let [ast (get-in root-ast path)]
     (case (:node-type ast)
       :clj/var
@@ -80,14 +85,19 @@
         (assoc-in context (cons :root-ast path)
           (if (nil? value-path)
             (assoc ast :error (str "Symbol " symbol " is unbound"))
-            (assoc ast :value-path value-path))))
+            (assoc ast :var.value/path value-path))))
 
       ;; else
       context)))
 
-(defn symbol->value-path-post-process [{:keys [root-ast path original-context] :as context}]
+(defn- symbol->value-path-post-process
+  "Updates an hashmap symbol->value-path as we walk the AST, to keep track of
+   what vars are in the current scope and where they are defined."
+  [{:keys [root-ast path original-context] :as context}]
   (let [ast (get-in root-ast path)]
     (case (:node-type ast)
+      ;; Add a var to the hashmap when we exit a let-binding, as it becomes available
+      ;; in the next let-binding entries and the let's bodies.
       :clj/let-binding
       (let [symbol (:symbol ast)]
         (-> context
@@ -95,6 +105,7 @@
             (update :symbol->value-path
                     assoc symbol (conj path :value))))
 
+      ;; Restore the hashmap when we exit the body/ies of its parent let or for node.
       (:clj/let :clj/for)
       (-> context
           ;; Pop symbol->value-path back to its original state
@@ -103,7 +114,19 @@
       ;; else
       context)))
 
-(defn find-bound-value-usages-pre-process [{:keys [root-ast path] :as context}]
+(defn link-vars-to-their-definition-pass
+  "An AST pass which links the vars to their definition via `:var.value/path`."
+  [context]
+  (-> context
+      (assoc :symbol->value-path {})
+      (walk-ast link-vars-pre-process symbol->value-path-post-process)
+      (dissoc :symbol->value-path)))
+
+;; -----------------------------------
+
+(defn- find-bound-value-usages-pre-process
+  ""
+  [{:keys [root-ast path] :as context}]
   (let [ast (get-in root-ast path)]
     (case (:node-type ast)
       :clj/var
@@ -114,7 +137,9 @@
       ;; else
       context)))
 
-(defn find-bound-value-usages-post-process [{:keys [root-ast] :as context}]
+(defn- find-bound-value-usages-post-process
+  ""
+  [{:keys [root-ast] :as context}]
   (let [value-path->usage-paths (:value-path->usage-paths context)]
     (-> context
         (assoc :root-ast (reduce (fn [root-ast [value-path usage-paths]]

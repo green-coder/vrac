@@ -105,6 +105,9 @@
 ;;#?(:clj
 ;;   (defmacro expand-dsl [quoted-dsl-form]
 ;;     (let [env &env]
+;;       (if (:ns env)
+;;         'compiling-cljs-code
+;;         'compiling-clj-code)
 ;;       (resolve-and-macro-expand-dsl quoted-dsl-form
 ;;                                     env
 ;;                                     clj-reserved-words
