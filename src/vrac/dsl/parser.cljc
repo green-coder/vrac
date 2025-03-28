@@ -74,8 +74,11 @@
                                                                                  [[] local-vars]
                                                                                  (partition 2 bindings))
                                                    body (resolve-and-expand body local-vars)]
-                                               `(for ~bindings ~body)
-                                               ,)
+                                               `(for ~bindings ~body))
+
+                                             ;; (quote ,,,)
+                                             (= f `quote)
+                                             x ; "You can't touch this"
 
                                              ;; (f a b c)
                                              :else
@@ -99,13 +102,13 @@
                                    x))]
         (resolve-and-expand x #{})))))
 
-#?(:clj
-   (defmacro expand-dsl [quoted-dsl-form]
-     (let [env &env]
-       (resolve-and-macro-expand-dsl quoted-dsl-form
-                                     env
-                                     clj-reserved-words
-                                     macro/macros))))
+;;#?(:clj
+;;   (defmacro expand-dsl [quoted-dsl-form]
+;;     (let [env &env]
+;;       (resolve-and-macro-expand-dsl quoted-dsl-form
+;;                                     env
+;;                                     clj-reserved-words
+;;                                     macro/macros))))
 
 (defn dsl->ast [x]
   "Shallow transformation from a DSL expression to an AST."

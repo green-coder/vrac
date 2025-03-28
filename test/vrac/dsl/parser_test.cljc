@@ -4,16 +4,16 @@
             [vrac.dsl.parser :as sut]))
 
 #?(:clj
-   (deftest expand-dsl-test
+   (deftest resolve-and-macro-expand-dsl-test
      (testing "expansion of the -> macro and symbol resolution in `let`"
        (is (= `(let [~'a 1
                      ~'b 2]
                  (prn (+ ~'a ~'b 3)))
-              (sut/expand-dsl '(let [a 1
-                                     b 2]
-                                 (-> a
-                                     (+ b 3)
-                                     prn))))))
+              (sut/resolve-and-macro-expand-dsl '(let [a 1
+                                                       b 2]
+                                                   (-> a
+                                                       (+ b 3)
+                                                       prn))))))
 
      (testing "destructuring in `for`"
        (is (= `(for [~'a [1 2 3]
@@ -24,12 +24,23 @@
                            ~'y (:y ~'m)]
                      :when (< ~'a ~'b ~'x ~'y)]
                  [~'a ~'b ~'x ~'y])
-              (sut/expand-dsl '(for [a [1 2 3]
-                                     :let [b (+ a 100)
-                                           {:keys [x y] :as m} {:x a
-                                                                :y b}]
-                                     :when (< a b x y)]
-                                    [a b x y])))))))
+              (sut/resolve-and-macro-expand-dsl '(for [a [1 2 3]
+                                                       :let [b (+ a 100)
+                                                             {:keys [x y] :as m} {:x a
+                                                                                  :y b}]
+                                                       :when (< a b x y)]
+                                                      [a b x y])))))
+
+     (testing "quoted expressions"
+       (is (= `(let [~'a 1
+                     ~'b ~''x
+                     ~'c ~'''y]
+                 ~''d)
+              (sut/resolve-and-macro-expand-dsl '(let [a 1
+                                                       b 'x
+                                                       c ''y]
+                                                   'd)))))))
+
 
 (deftest dsl->ast-test
   (are [expected-ast dsl]
