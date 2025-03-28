@@ -45,6 +45,26 @@
     `(let [~'a 1]
        ~'a)
 
+    {:node-type :clj/let
+     :bindings [{:node-type :clj/let-binding
+                 :symbol 'a
+                 :value {:node-type :clj/value
+                         :value 1}}
+                {:node-type :clj/let-binding
+                 :symbol 'b
+                 :value {:node-type :clj/value
+                         :value 'x}}
+                {:node-type :clj/let-binding
+                 :symbol 'c
+                 :value {:node-type :clj/value
+                         :value ''y}}]
+     :bodies   [{:node-type :clj/value
+                 :value 'd}]}
+    `(let [~'a 1
+           ~'b ~''x
+           ~'c ~'''y]
+       ~''d)
+
     {:node-type :dsl/signal
      :body      {:node-type :clj/value
                  :value     1}}

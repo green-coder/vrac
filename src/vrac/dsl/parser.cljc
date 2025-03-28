@@ -143,6 +143,12 @@
              :then (dsl->ast then)
              :else (dsl->ast else)})
 
+          ;; (quote x)
+          (= f `quote)
+          (let [[quoted-value] args]
+            {:node-type :clj/value
+             :value quoted-value})
+
           ;; (when cond & bodies)
           (= f `when)
           (let [[cond & bodies] args]
