@@ -9,9 +9,9 @@
 ;; we treat them as special cases which resolve to themselves.
 #?(:clj
    (def clj-reserved-words
-     '{do do
-       if if
-       quote quote}))
+     {'do `do
+      'if `if
+      'quote `quote}))
 
 ;; Macro-expand and resolve the symbols in the DSL.
 ;; var-resolver is a function which can be used for user-defined global variable resolution.
@@ -108,8 +108,8 @@
                                      clj-reserved-words
                                      macro/macros))))
 
-;; Shallow transformation from a DSL expression to an AST.
 (defn dsl->ast [x]
+  "Shallow transformation from a DSL expression to an AST."
   (cond
 
     (seq? x)
@@ -246,23 +246,6 @@
     :else
     {:node-type :clj/value
      :value x}))
-
-#_
-(-> '(let [a (dsl/signal 1)
-           b (dsl/state 2)
-           c (+ a b)
-           d (dsl/memo (+ a b))
-           e (dsl/snap (+ a b))]
-       (do
-         (for [i [1 2 3]
-               :let [j (inc i)]]
-           (+ i j 10))
-         (if true 10 20)
-         (when true 30)
-         (dsl/effect
-           (prn (+ a b c d e)))))
-    resolve-and-macro-expand-dsl
-    dsl->ast)
 
 ;; node-type -> child-node -> #{:one :many}
 (def node-type->walkable-children
