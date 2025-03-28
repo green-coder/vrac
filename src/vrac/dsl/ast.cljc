@@ -73,8 +73,8 @@
 
 ;; -----------------------------------
 
-(defn- link-vars-pre-process
-  "On each var node, assoc :var.value/path to point where its value is defined.
+(defn- link-vars-pre-walk
+  "On each var node, assoc `:var.value/path` to point where its value is defined.
    Assoc an :error instead if the var is unbound."
   [{:keys [root-ast path symbol->value-path] :as context}]
   (let [ast (get-in root-ast path)]
@@ -90,7 +90,7 @@
       ;; else
       context)))
 
-(defn- symbol->value-path-post-process
+(defn- symbol->value-path-post-walk
   "Updates an hashmap symbol->value-path as we walk the AST, to keep track of
    what vars are in the current scope and where they are defined."
   [{:keys [root-ast path original-context] :as context}]
@@ -119,80 +119,46 @@
   [context]
   (-> context
       (assoc :symbol->value-path {})
-      (walk-ast link-vars-pre-process symbol->value-path-post-process)
+      (walk-ast link-vars-pre-walk symbol->value-path-post-walk)
       (dissoc :symbol->value-path)))
 
 ;; -----------------------------------
 
-(defn- find-bound-value-usages-pre-process
-  ""
+(defn- find-bound-value-usages-pre-walk
+  "Collects all the var usages from the whole AST into
+   a hashmap `:var.value/path` -> `:var.usage/paths`."
   [{:keys [root-ast path] :as context}]
   (let [ast (get-in root-ast path)]
     (case (:node-type ast)
       :clj/var
-      (let [value-path (:value-path ast)]
+      (let [value-path (:var.value/path ast)]
         (-> context
             (update-in [:value-path->usage-paths value-path] (fnil conj []) path)))
 
       ;; else
       context)))
 
-(defn- find-bound-value-usages-post-process
-  ""
+(defn- find-bound-value-usages-pass-cleanup
+  "From the hashmap, write down in the AST the usages of each bound value."
   [{:keys [root-ast] :as context}]
   (let [value-path->usage-paths (:value-path->usage-paths context)]
     (-> context
         (assoc :root-ast (reduce (fn [root-ast [value-path usage-paths]]
                                    (-> root-ast
-                                       (assoc-in (conj value-path :usage-paths) usage-paths)))
+                                       (assoc-in (conj value-path :var.usage/paths) usage-paths)))
                                  root-ast
                                  value-path->usage-paths))
         (dissoc :value-path->usage-paths))))
 
-#_
-(-> '(let [a 1
-           a (inc a)]
-       (+ a a))
-    resolve-and-macro-expand-dsl
-    dsl->ast
-    ast->context
+;; This pass works after `link-vars-to-their-definition-pass`
+(defn add-var-usage-pass
+  "An AST pass which annotates all the var usages bi-directionally,
+   via `:var.value/path` and `:var.usage/paths`."
+  [context]
+  (-> context
+      (walk-ast find-bound-value-usages-pre-walk identity)
+      find-bound-value-usages-pass-cleanup))
 
-    ;; Macro expansion & symbol resolution
-    ((fn [context] (-> context (assoc :symbol->value-path {}))))
-    (walk-ast link-vars-pre-process
-              symbol->value-path-post-process)
-    ((fn [context] (-> context (dissoc :symbol->value-path))))
-
-
-    ;; Usage pass
-    ;;(walk-ast find-bound-value-usages-pre-process
-    ;;          identity)
-    ;;find-bound-value-usages-post-process
-
-    ,)
-
-#_
-(def task
-  {:task-id :my-task-id
-   :steps [{:step-id :my-step-id
-            :deps [:other-step-id :other-task-id]
-            :root-pre-process nil
-            :pre-process nil
-            :post-process nil
-            :root-post-process nil}]})
-
-;;(def add-vars-value-path
-;;  {:task-id :task/add-vars-value-path
-;;   :steps   [{:step-id           :step/add-vars-value-path
-;;              :root-pre-process  (fn [context] (-> context (assoc :symbol->value-path {})))
-;;              :pre-process       link-vars-pre-process
-;;              :post-process      symbol->value-path-post-process
-;;              :root-post-process (fn [context] (-> context (dissoc :symbol->value-path)))}]})
-;;
-;;(def add-bound-value-usage
-;;  {:task-id :task/add-bound-value-usage
-;;   :steps   [{:step-id           :step/add-bound-value-usage
-;;              :pre-process       find-bound-value-usages-pre-process
-;;              :root-post-process find-bound-value-usages-post-process}]})
+;; -----------------------------------
 
 #_(diff *2 *1)

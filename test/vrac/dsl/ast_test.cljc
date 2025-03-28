@@ -86,3 +86,38 @@
                 parser/dsl->ast
                 sut/make-context
                 sut/link-vars-to-their-definition-pass)))))
+
+#?(:clj
+   (deftest add-var-usage-pass-test
+     (is (= {:root-ast {:node-type :clj/let
+                        :bindings [{:node-type :clj/let-binding
+                                    :symbol 'a
+                                    :value {:node-type :clj/value
+                                            :value 1
+                                            :var.usage/paths [[:bindings 1 :value :args 0]]}}
+                                   {:node-type :clj/let-binding
+                                    :symbol 'a
+                                    :value {:node-type :clj/invocation
+                                            :function `inc
+                                            :args [{:node-type :clj/var
+                                                    :symbol 'a
+                                                    :var.value/path [:bindings 0 :value]}]
+                                            :var.usage/paths [[:bodies 0 :args 0]
+                                                              [:bodies 0 :args 1]]}}]
+                        :bodies [{:node-type :clj/invocation
+                                  :function `+
+                                  :args [{:node-type :clj/var
+                                          :symbol 'a
+                                          :var.value/path [:bindings 1 :value]}
+                                         {:node-type :clj/var
+                                          :symbol 'a
+                                          :var.value/path [:bindings 1 :value]}]}]}
+             :path []}
+            (-> '(let [a 1
+                       a (inc a)]
+                   (+ a a))
+                parser/resolve-and-macro-expand-dsl
+                parser/dsl->ast
+                sut/make-context
+                sut/link-vars-to-their-definition-pass
+                sut/add-var-usage-pass)))))
