@@ -119,9 +119,9 @@
   "An AST pass which links the vars to their definition via `:var.value/path`."
   [context]
   (-> context
-      (assoc :symbol->value-path {})
+      (assoc :symbol->value-path {}) ;; pass setup
       (walk-ast link-vars-pre-walk symbol->value-path-post-walk)
-      (dissoc :symbol->value-path)))
+      (dissoc :symbol->value-path))) ;; pass clean up
 
 ;; -----------------------------------
 
@@ -139,7 +139,7 @@
       ;; else
       context)))
 
-(defn- find-bound-value-usages-pass-cleanup
+(defn- find-bound-value-usages-pass-clean-up
   "From the hashmap, write down in the AST the usages of each bound value."
   [{:keys [root-ast] :as context}]
   (let [value-path->usage-paths (:value-path->usage-paths context)]
@@ -158,7 +158,7 @@
   [context]
   (-> context
       (walk-ast find-bound-value-usages-pre-walk identity)
-      find-bound-value-usages-pass-cleanup))
+      find-bound-value-usages-pass-clean-up))
 
 ;; -----------------------------------
 

@@ -4,6 +4,13 @@
             [vrac.dsl.ast :as sut]))
 
 #?(:clj
+   (defn dsl->context [dsl]
+     (-> dsl
+         parser/resolve-and-macro-expand-dsl
+         parser/dsl->ast
+         sut/make-context)))
+
+#?(:clj
    (deftest walk-ast-test
      (let [pre-process (fn tag-all-vars [{:keys [root-ast path] :as context}]
                          (let [ast (get-in root-ast path)]
@@ -45,9 +52,7 @@
                      (-> (for [x [1 2 3]]
                            (str a x))
                          vec))
-                  parser/resolve-and-macro-expand-dsl
-                  parser/dsl->ast
-                  sut/make-context
+                  dsl->context
                   (sut/walk-ast pre-process post-process)))))))
 
 #?(:clj
@@ -82,9 +87,7 @@
                    [a]
                    {a b}
                    a)
-                parser/resolve-and-macro-expand-dsl
-                parser/dsl->ast
-                sut/make-context
+                dsl->context
                 sut/link-vars-to-their-definition-pass)))))
 
 #?(:clj
@@ -116,8 +119,6 @@
             (-> '(let [a 1
                        a (inc a)]
                    (+ a a))
-                parser/resolve-and-macro-expand-dsl
-                parser/dsl->ast
-                sut/make-context
+                dsl->context
                 sut/link-vars-to-their-definition-pass
                 sut/add-var-usage-pass)))))
