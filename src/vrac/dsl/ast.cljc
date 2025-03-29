@@ -42,7 +42,8 @@
   "Walks and transforms a context containing the AST."
   [context pre-process post-process]
   (let [walk (fn walk [original-context]
-               (let [{:keys [root-ast path] :as context} (pre-process original-context)
+               (let [path (:path original-context)
+                     {:keys [root-ast] :as context} (pre-process original-context)
                      ast (get-in root-ast path)
                      field->cardinality (-> ast :node-type node-type->walkable-children)
                      context (reduce (fn [context [field cardinality]]
