@@ -76,7 +76,7 @@
 
 (defn- link-vars-pre-walk
   "On each var node, assoc `:var.value/path` to point where its value is defined.
-   Assoc an :error instead if the var is unbound."
+   Assoc :var/unbound true instead if the var is unbound."
   [{:keys [root-ast path symbol->value-path] :as context}]
   (let [ast (get-in root-ast path)]
     (case (:node-type ast)
@@ -85,7 +85,7 @@
             value-path (symbol->value-path symbol)]
         (assoc-in context (cons :root-ast path)
           (if (nil? value-path)
-            (assoc ast :error (str "Symbol " symbol " is unbound"))
+            (assoc ast :var/unbound true)
             (assoc ast :var.value/path value-path))))
 
       ;; else
@@ -134,7 +134,8 @@
       :clj/var
       (let [value-path (:var.value/path ast)]
         (-> context
-            (update-in [:value-path->usage-paths value-path] (fnil conj []) path)))
+            (cond-> (some? value-path)
+                    (update-in [:value-path->usage-paths value-path] (fnil conj []) path))))
 
       ;; else
       context)))

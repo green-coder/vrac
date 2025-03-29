@@ -28,7 +28,9 @@
                                        :value     {:node-type :clj/value
                                                    :value     0}}]
                           :bodies    [{:node-type :clj/invocation
-                                       :function  `vec
+                                       :function  {:node-type :clj/var
+                                                   :symbol    `vec
+                                                   :tagged    true}
                                        :args      [{:node-type :clj/for
                                                     :bindings  [{:node-type :clj/for-iteration
                                                                  :symbol    'x
@@ -40,7 +42,9 @@
                                                                                           :value     3}]
                                                                              :node-type :clj/vector}}]
                                                     :body      {:node-type :clj/invocation
-                                                                :function  `str
+                                                                :function  {:node-type :clj/var
+                                                                            :symbol    `str
+                                                                            :tagged    true}
                                                                 :args      [{:node-type :clj/var
                                                                              :symbol    'a
                                                                              :tagged    true}
@@ -101,14 +105,18 @@
                                    {:node-type :clj/let-binding
                                     :symbol 'a
                                     :value {:node-type :clj/invocation
-                                            :function `inc
+                                            :function {:node-type   :clj/var
+                                                       :symbol      `inc
+                                                       :var/unbound true}
                                             :args [{:node-type :clj/var
                                                     :symbol 'a
                                                     :var.value/path [:bindings 0 :value]}]
                                             :var.usage/paths [[:bodies 0 :args 0]
                                                               [:bodies 0 :args 1]]}}]
                         :bodies [{:node-type :clj/invocation
-                                  :function `+
+                                  :function {:node-type   :clj/var
+                                             :symbol      `+
+                                             :var/unbound true}
                                   :args [{:node-type :clj/var
                                           :symbol 'a
                                           :var.value/path [:bindings 1 :value]}

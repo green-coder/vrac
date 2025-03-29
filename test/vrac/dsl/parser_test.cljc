@@ -87,7 +87,8 @@
     `(dsl/state 1)
 
     {:node-type :clj/invocation
-     :function  `+
+     :function  {:node-type :clj/var
+                 :symbol    `+}
      :args      [{:node-type :clj/var
                   :symbol    'a}
                  {:node-type :clj/var
@@ -96,7 +97,8 @@
 
     {:node-type :dsl/memo
      :body      {:node-type :clj/invocation
-                 :function  `+
+                 :function  {:node-type :clj/var
+                             :symbol    `+}
                  :args      [{:node-type :clj/var
                               :symbol    'a}
                              {:node-type :clj/var
@@ -105,7 +107,8 @@
 
     {:node-type :dsl/snap
      :body      {:node-type :clj/invocation
-                 :function  `+
+                 :function  {:node-type :clj/var
+                             :symbol    `+}
                  :args      [{:node-type :clj/var
                               :symbol    'a}
                              {:node-type :clj/var
@@ -114,7 +117,8 @@
 
     {:node-type :clj/do
      :bodies    [{:node-type :clj/invocation
-                  :function  `prn
+                  :function  {:node-type :clj/var
+                              :symbol    `prn}
                   :args      [{:node-type :clj/var
                                :symbol    'a}]}
                  {:node-type :clj/var
@@ -156,7 +160,8 @@
                  {:node-type :clj/for-when
                   :symbol    :when
                   :value     {:node-type :clj/invocation
-                              :function  `>
+                              :function  {:node-type :clj/var
+                                          :symbol    `>}
                               :args      [{:node-type :clj/var
                                            :symbol    'a}
                                           {:node-type :clj/value
@@ -164,7 +169,8 @@
                  {:node-type :clj/for-while
                   :symbol    :while
                   :value     {:node-type :clj/invocation
-                              :function  `>
+                              :function  {:node-type :clj/var
+                                          :symbol    `>}
                               :args      [{:node-type :clj/var
                                            :symbol    'b}
                                           {:node-type :clj/value
@@ -179,9 +185,11 @@
 
     {:node-type :dsl/effect
      :bodies    [{:node-type :clj/invocation
-                  :function  `prn
+                  :function  {:node-type :clj/var
+                              :symbol    `prn}
                   :args      [{:node-type :clj/invocation
-                               :function  `+
+                               :function  {:node-type :clj/var
+                                           :symbol    `+}
                                :args      [{:node-type :clj/var
                                             :symbol    'a}
                                            {:node-type :clj/var

@@ -227,7 +227,7 @@
 
           :else
           {:node-type :clj/invocation
-           :function f
+           :function (dsl->ast f)
            :args (mapv dsl->ast args)})))
 
     (set? x)
