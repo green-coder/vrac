@@ -175,18 +175,25 @@
 
 (defn- lifespan-pre-walk
   [{:keys [root-ast path ancestor-paths] :as context}]
-  (let [parent-ast (when-some [parent-path (peek ancestor-paths)]
+  (let [ast (get-in root-ast path)
+        parent-ast (when-some [parent-path (peek ancestor-paths)]
                      (get-in root-ast parent-path))
-        ast (get-in root-ast path)]
-    (case (:node-type ast)
-      ,,, ;; TBD
-      ,,,
+        parent-lifespan (:node.lifespan/path parent-ast)
+        lifespan-path (case (:node-type parent-ast)
+                        nil
+                        path
 
-      ;; else
-      (-> context
-          (assoc-in (cons :root-ast path)
-                    (-> ast
-                        (assoc :node.lifespan/path (or (:node.lifespan/path parent-ast) path))))))))
+                        :clj/if
+                        (if (= (peek path) :cond)
+                          parent-lifespan
+                          path)
+
+                        ;; else
+                        parent-lifespan)]
+    (-> context
+        (assoc-in (cons :root-ast path)
+                  (-> ast
+                      (assoc :node.lifespan/path lifespan-path))))))
 
 (defn add-lifespan-pass
   "An AST pass which annotates all the nodes with a :node.lifespan/path

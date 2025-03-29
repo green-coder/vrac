@@ -138,16 +138,85 @@
                           :bindings [{:node-type :clj/let-binding
                                       :symbol 'a
                                       :value {:node-type :clj/value
-                                              :value 0
+                                              :value 1
                                               :node.lifespan/path []}
                                       :node.lifespan/path []}]
-                          :bodies [{:node-type :clj/var
+                          :bodies [{:node-type :clj/let
+                                    :bindings [{:node-type :clj/let-binding
+                                                :symbol 'b
+                                                :value {:node-type :clj/value
+                                                        :value 2
+                                                        :node.lifespan/path []}
+                                                :node.lifespan/path []}]
+                                    :bodies []
+                                    :node.lifespan/path []}
+                                   {:node-type :clj/do,
+                                    :bodies [{:node-type :clj/var
+                                              :symbol 'a
+                                              :node.lifespan/path []}]
+                                    :node.lifespan/path []}
+                                   {:node-type :clj/map
+                                    :entries [{:node-type :clj/map-entry
+                                               :key {:node-type :clj/var
+                                                     :symbol 'a
+                                                     :node.lifespan/path []}
+                                               :value {:node-type :clj/var
+                                                       :symbol 'a
+                                                       :node.lifespan/path []}
+                                               :node.lifespan/path []}]
+                                    :node.lifespan/path []}
+                                   {:node-type :clj/vector
+                                    :items [{:node-type :clj/var
+                                             :symbol 'a
+                                             :node.lifespan/path []}]
+                                    :node.lifespan/path []}
+                                   {:node-type :clj/invocation
+                                    :function {:node-type :clj/var
+                                               :symbol `inc
+                                               :node.lifespan/path []},
+                                    :args [{:node-type :clj/var
+                                            :symbol 'a
+                                            :node.lifespan/path []}]
+                                    :node.lifespan/path []}
+                                   {:node-type :clj/var
                                     :symbol 'a
                                     :node.lifespan/path []}]
                           :node.lifespan/path []}
                :path []}
-              (-> '(let [a 0]
+              (-> '(let [a 1]
+                     (let [b 2])
+                     (do a)
+                     {a a}
+                     [a]
+                     (inc a)
                      a)
+                  dsl->context
+                  sut/add-lifespan-pass))))
+
+     (testing "the if form"
+       (is (= {:root-ast {:node-type :clj/if
+                          :cond {:node-type :clj/invocation
+                                 :function {:node-type :clj/var
+                                            :symbol `=
+                                            :node.lifespan/path []}
+                                 :args [{:node-type :clj/value
+                                         :value 1
+                                         :node.lifespan/path []}
+                                        {:node-type :clj/value
+                                         :value 1
+                                         :node.lifespan/path []}]
+                                 :node.lifespan/path []}
+                          :then {:node-type :clj/value
+                                 :value :then
+                                 :node.lifespan/path [:then]}
+                          :else {:node-type :clj/value
+                                 :value ''else
+                                 :node.lifespan/path [:else]}
+                          :node.lifespan/path []}
+               :path []}
+              (-> '(if (= 1 1)
+                     :then
+                     'else)
                   dsl->context
                   sut/add-lifespan-pass))))))
 
