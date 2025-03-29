@@ -83,10 +83,12 @@
       :clj/var
       (let [symbol (:symbol ast)
             value-path (symbol->value-path symbol)]
-        (assoc-in context (cons :root-ast path)
-          (if (nil? value-path)
-            (assoc ast :var/unbound true)
-            (assoc ast :var.value/path value-path))))
+        (-> context
+            (assoc-in (cons :root-ast path)
+                      (-> ast
+                          (mc/if-> (nil? value-path)
+                            (assoc :var/unbound true)
+                            (assoc :var.value/path value-path))))))
 
       ;; else
       context)))
@@ -173,18 +175,18 @@
 
 (defn- lifespan-pre-walk
   [{:keys [root-ast path ancestor-paths] :as context}]
-  (let [ast (get-in root-ast path)]
+  (let [parent-ast (when-some [parent-path (peek ancestor-paths)]
+                     (get-in root-ast parent-path))
+        ast (get-in root-ast path)]
     (case (:node-type ast)
       ,,, ;; TBD
       ,,,
 
       ;; else
-      (let [parent-lifespan (when (seq ancestor-paths)
-                              (-> (get-in root-ast (peek ancestor-paths))
-                                  :node.lifespan/path))]
-        (-> context
-            (assoc :root-ast
-                   (assoc-in root-ast (conj path :node.lifespan/path) (or parent-lifespan path))))))))
+      (-> context
+          (assoc-in (cons :root-ast path)
+                    (-> ast
+                        (assoc :node.lifespan/path (or (:node.lifespan/path parent-ast) path))))))))
 
 (defn add-lifespan-pass
   "An AST pass which annotates all the nodes with a :node.lifespan/path
