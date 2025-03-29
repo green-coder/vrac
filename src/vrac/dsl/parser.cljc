@@ -151,9 +151,8 @@
 
           ;; (quote x)
           (= f `quote)
-          (let [[quoted-value] args]
-            {:node-type :clj/value
-             :value quoted-value})
+          {:node-type :clj/value
+           :value x}
 
           ;; (when cond & bodies)
           (= f `when)

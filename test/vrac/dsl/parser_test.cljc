@@ -46,6 +46,14 @@
   (are [expected-ast dsl]
     (= expected-ast (sut/dsl->ast dsl))
 
+    {:node-type :clj/var
+     :symbol 'a}
+    'a
+
+    {:node-type :clj/value
+     :value ''a}
+    ''a
+
     {:node-type :clj/let
      :bindings  [{:node-type :clj/let-binding
                   :symbol    'a
@@ -64,13 +72,13 @@
                 {:node-type :clj/let-binding
                  :symbol 'b
                  :value {:node-type :clj/value
-                         :value 'x}}
+                         :value ''x}}
                 {:node-type :clj/let-binding
                  :symbol 'c
                  :value {:node-type :clj/value
-                         :value ''y}}]
+                         :value '''y}}]
      :bodies   [{:node-type :clj/value
-                 :value 'd}]}
+                 :value ''d}]}
     `(let [~'a 1
            ~'b ~''x
            ~'c ~'''y]
