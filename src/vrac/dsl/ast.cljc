@@ -72,6 +72,14 @@
   {:root-ast ast
    :path []})
 
+(defn push-ancestor-path [context]
+  (-> context
+      (update :ancestor-paths conj (:path context))))
+
+(defn pop-ancestor-path [context]
+  (-> context
+      (update :ancestor-paths pop)))
+
 ;; -----------------------------------
 
 (defn- link-vars-pre-walk
@@ -164,14 +172,6 @@
       find-bound-value-usages-pass-clean-up))
 
 ;; -----------------------------------
-
-(defn- push-ancestor-path [context]
-  (-> context
-      (update :ancestor-paths conj (:path context))))
-
-(defn- pop-ancestor-path [context]
-  (-> context
-      (update :ancestor-paths pop)))
 
 (defn- lifespan-pre-walk
   [{:keys [root-ast path ancestor-paths] :as context}]
