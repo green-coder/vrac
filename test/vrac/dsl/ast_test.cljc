@@ -122,3 +122,24 @@
                 dsl->context
                 sut/link-vars-to-their-definition-pass
                 sut/add-var-usage-pass)))))
+
+#?(:clj
+   (deftest add-lifespan-pass-test
+     (testing "when the lifespan is the same for whole DSL"
+       (is (= {:root-ast {:node-type :clj/let
+                          :bindings [{:node-type :clj/let-binding
+                                      :symbol 'a
+                                      :value {:node-type :clj/value
+                                              :value 0
+                                              :node.lifespan/path []}
+                                      :node.lifespan/path []}]
+                          :bodies [{:node-type :clj/var
+                                    :symbol 'a
+                                    :node.lifespan/path []}]
+                          :node.lifespan/path []}
+               :path []}
+              (-> '(let [a 0]
+                     a)
+                  dsl->context
+                  sut/add-lifespan-pass))))))
+

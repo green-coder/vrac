@@ -162,4 +162,41 @@
 
 ;; -----------------------------------
 
+(defn- push-ancestor-path [context]
+  (-> context
+      (update :ancestor-paths conj (:path context))))
+
+(defn- pop-ancestor-path [context]
+  (-> context
+      (update :ancestor-paths pop)))
+
+(defn- lifespan-pre-walk
+  [{:keys [root-ast path ancestor-paths] :as context}]
+  (let [ast (get-in root-ast path)]
+    (case (:node-type ast)
+      ,,, ;; TBD
+      ,,,
+
+      ;; else
+      (let [parent-lifespan (when (seq ancestor-paths)
+                              (-> (get-in root-ast (peek ancestor-paths))
+                                  :node.lifespan/path))]
+        (-> context
+            (assoc :root-ast
+                   (assoc-in root-ast (conj path :node.lifespan/path) (or parent-lifespan path))))))))
+
+(defn add-lifespan-pass
+  "An AST pass which annotates all the nodes with a :node.lifespan/path
+   pointing to the root of the scope which has the same lifespan."
+  [context]
+  (-> context
+      (assoc :ancestor-paths [])
+      (walk-ast (mc/comp-> lifespan-pre-walk
+                           push-ancestor-path)
+                (mc/comp-> pop-ancestor-path
+                           identity))
+      (dissoc :ancestor-paths)))
+
+;; -----------------------------------
+
 #_(diff *2 *1)
