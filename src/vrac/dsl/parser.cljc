@@ -184,9 +184,9 @@
                                                                       :symbol symbol
                                                                       :value (dsl->ast value)})))}
                                        :when {:node-type :clj/for-when
-                                              :value     (dsl->ast value)}
+                                              :cond      (dsl->ast value)}
                                        :while {:node-type :clj/for-while
-                                               :value     (dsl->ast value)}
+                                               :cond      (dsl->ast value)}
                                        {:node-type :clj/for-iteration
                                         :symbol    symbol
                                         :value     (dsl->ast value)}))))

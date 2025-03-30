@@ -166,7 +166,7 @@
                                :value     {:node-type :clj/value
                                            :value     4}}]}
                  {:node-type :clj/for-when
-                  :value     {:node-type :clj/invocation
+                  :cond      {:node-type :clj/invocation
                               :function  {:node-type :clj/var
                                           :symbol    `>}
                               :args      [{:node-type :clj/var
@@ -174,7 +174,7 @@
                                           {:node-type :clj/value
                                            :value     1}]}}
                  {:node-type :clj/for-while
-                  :value     {:node-type :clj/invocation
+                  :cond      {:node-type :clj/invocation
                               :function  {:node-type :clj/var
                                           :symbol    `>}
                               :args      [{:node-type :clj/var
