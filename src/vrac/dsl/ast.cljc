@@ -174,38 +174,51 @@
 ;; -----------------------------------
 
 (defn- lifespan-pre-walk
-  [{:keys [root-ast path ancestor-paths] :as context}]
+  [{:keys [root-ast path lifespan-path] :as context}]
   (let [ast (get-in root-ast path)
-        parent-ast (when-some [parent-path (peek ancestor-paths)]
-                     (get-in root-ast parent-path))
-        parent-lifespan (:node.lifespan/path parent-ast)
-        lifespan-path (case (:node-type parent-ast)
-                        nil
-                        path
+        ;; The lifespan defined on the node takes priority
+        lifespan-path (:node.lifespan/path ast lifespan-path)
+        ;; Saves the value in the node
+        ast (-> ast
+                (assoc :node.lifespan/path lifespan-path))
+        ;;
+        ast (case (:node-type ast)
+              :clj/if
+              (-> ast
+                  ;; Set a lifespan on the :then and :else nodes
+                  (assoc-in [:then :node.lifespan/path] (conj path :then))
+                  (assoc-in [:else :node.lifespan/path] (conj path :else)))
 
-                        :clj/if
-                        (if (= (peek path) :cond)
-                          parent-lifespan
-                          path)
+              :clj/for
+              (let [[bindings lifespan-path] (reduce (fn [[bindings lifespan] [index binding]]
+                                                       [(conj bindings (-> binding
+                                                                           (assoc :node.lifespan/path lifespan)))
+                                                        (conj path :bindings index :symbol)])
+                                                     [[] lifespan-path]
+                                                     (mc/seq-indexed (:bindings ast)))]
+                (-> ast
+                    (assoc :bindings bindings)
+                    (assoc-in [:body :node.lifespan/path] lifespan-path)))
 
-                        ;; else
-                        parent-lifespan)]
+              ;; else
+              ast)]
     (-> context
-        (assoc-in (cons :root-ast path)
-                  (-> ast
-                      (assoc :node.lifespan/path lifespan-path))))))
+        (assoc :lifespan-path lifespan-path)
+        (assoc-in (cons :root-ast path) ast))))
+
+(defn- lifespan-post-walk
+  [{:keys [original-context] :as context}]
+  (-> context
+      (assoc :lifespan-path (:lifespan-path original-context))))
 
 (defn add-lifespan-pass
   "An AST pass which annotates all the nodes with a :node.lifespan/path
    pointing to the root of the scope which has the same lifespan."
   [context]
   (-> context
-      (assoc :ancestor-paths [])
-      (walk-ast (mc/comp-> lifespan-pre-walk
-                           push-ancestor-path)
-                (mc/comp-> pop-ancestor-path
-                           identity))
-      (dissoc :ancestor-paths)))
+      (assoc :lifespan-path []) ; pass setup
+      (walk-ast lifespan-pre-walk lifespan-post-walk)
+      (dissoc :lifespan-path))) ; pass clean up
 
 ;; -----------------------------------
 

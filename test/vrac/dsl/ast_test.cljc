@@ -218,5 +218,48 @@
                      :then
                      'else)
                   dsl->context
+                  sut/add-lifespan-pass))))
+
+     (testing "the for form"
+       (is (= {:root-ast {:node-type :clj/for
+                          :bindings [{:node-type :clj/for-iteration
+                                      :symbol 'x
+                                      :value {:node-type :clj/vector
+                                              :items [{:node-type :clj/value
+                                                       :value 1
+                                                       :node.lifespan/path []}
+                                                      {:node-type :clj/value
+                                                       :value 2
+                                                       :node.lifespan/path []}]
+                                              :node.lifespan/path []}
+                                      :node.lifespan/path []}
+                                     {:node-type :clj/for-iteration
+                                      :symbol 'y
+                                      :value {:node-type :clj/vector
+                                              :items [{:node-type :clj/value
+                                                       :value 10
+                                                       :node.lifespan/path [:bindings 0 :symbol]}
+                                                      {:node-type :clj/value
+                                                       :value 20
+                                                       :node.lifespan/path [:bindings 0 :symbol]}]
+                                              :node.lifespan/path [:bindings 0 :symbol]}
+                                      :node.lifespan/path [:bindings 0 :symbol]}]
+                          :body {:node-type :clj/invocation
+                                 :function {:node-type :clj/var
+                                            :symbol `+
+                                            :node.lifespan/path [:bindings 1 :symbol]}
+                                 :args [{:node-type :clj/var
+                                         :symbol 'x
+                                         :node.lifespan/path [:bindings 1 :symbol]}
+                                        {:node-type :clj/var
+                                         :symbol 'y
+                                         :node.lifespan/path [:bindings 1 :symbol]}]
+                                 :node.lifespan/path [:bindings 1 :symbol]}
+                          :node.lifespan/path []}
+               :path []}
+              (-> '(for [x [1 2]
+                         y [10 20]]
+                     (+ x y))
+                  dsl->context
                   sut/add-lifespan-pass))))))
 
