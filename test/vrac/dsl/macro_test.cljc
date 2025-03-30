@@ -4,20 +4,23 @@
             [vrac.test.util :refer [make-gensym]]))
 
 (deftest thread-first-test
-  (is (= `(prn (+ ~'a 1))
-         (sut/thread-first `(-> ~'a (+ 1) prn)))))
+  (testing "the -> macro"
+    (is (= `(prn (+ ~'a 1))
+           (sut/thread-first `(-> ~'a (+ 1) prn))))))
 
 (deftest thread-last-test
-  (is (= `(prn (+ 1 ~'a))
-         (sut/thread-last `(->> ~'a (+ 1) prn)))))
+  (testing "the ->> macro"
+    (is (= `(prn (+ 1 ~'a))
+           (sut/thread-last `(->> ~'a (+ 1) prn))))))
 
 (deftest thread-as-test
-  (is (= `(let [~'y (+ 1 2)
-                ~'y (+ ~'y 3)]
-            (+ ~'y 4))
-         (sut/thread-as `(as-> (+ 1 2) ~'y
-                               (+ ~'y 3)
-                               (+ ~'y 4))))))
+  (testing "the as-> macro"
+    (is (= `(let [~'y (+ 1 2)
+                  ~'y (+ ~'y 3)]
+              (+ ~'y 4))
+           (sut/thread-as `(as-> (+ 1 2) ~'y
+                                 (+ ~'y 3)
+                                 (+ ~'y 4)))))))
 
 (deftest destruct-test
   (testing "sequential destruct"
@@ -103,22 +106,24 @@
                                  :as       x} y])))))
 
 (deftest expand-let-bindings-test
-  (with-redefs [gensym (make-gensym)]
-    (is (= `(let [~'map__2 {:a 1}
-                  ~'a (:a ~'map__2)]
-              ~'a)
-           (sut/expand-let-bindings `(let [~'{a :a} {:a 1}] ~'a))))))
+  (testing "let bindings expansion"
+    (with-redefs [gensym (make-gensym)]
+      (is (= `(let [~'map__2 {:a 1}
+                    ~'a (:a ~'map__2)]
+                ~'a)
+             (sut/expand-let-bindings `(let [~'{a :a} {:a 1}] ~'a)))))))
 
-(deftest expand-let-bindings-test
-  (with-redefs [gensym (make-gensym)]
-    (is (= `(for [~'item__2 [[1 2] [3 4]]
-                  :let [~'vec__3 ~'item__2
-                        ~'a (nth ~'vec__3 0)
-                        ~'b (nth ~'vec__3 1)]
-                  :let [~'vec__4 [10 20]
-                        ~'c (nth ~'vec__4 0)
-                        ~'d (nth ~'vec__4 1)]]
-              [~'a ~'b ~'c ~'d])
-            (sut/expand-for-bindings `(for [~'[a b] ~[[1 2] [3 4]]
-                                            :let [~'[c d] ~'[10 20]]]
-                                        ~'[a b c d]))))))
+(deftest expand-for-bindings-test
+  (testing "for bindings expansion"
+    (with-redefs [gensym (make-gensym)]
+      (is (= `(for [~'item__2 [[1 2] [3 4]]
+                    :let [~'vec__3 ~'item__2
+                          ~'a (nth ~'vec__3 0)
+                          ~'b (nth ~'vec__3 1)]
+                    :let [~'vec__4 [10 20]
+                          ~'c (nth ~'vec__4 0)
+                          ~'d (nth ~'vec__4 1)]]
+                [~'a ~'b ~'c ~'d])
+              (sut/expand-for-bindings `(for [~'[a b] ~[[1 2] [3 4]]
+                                              :let [~'[c d] ~'[10 20]]]
+                                          ~'[a b c d])))))))
