@@ -220,6 +220,21 @@
                   dsl->context
                   sut/add-lifespan-pass))))
 
+     (testing "the when form"
+       (is (= {:root-ast {:node-type :clj/when
+                          :cond {:node-type :clj/value
+                                 :value true
+                                 :node.lifespan/path []}
+                          :bodies [{:node-type :clj/value
+                                    :value 1
+                                    :node.lifespan/path [:bodies]}]
+                          :node.lifespan/path []}
+               :path []}
+              (-> '(when true
+                     1)
+                  dsl->context
+                  sut/add-lifespan-pass))))
+
      (testing "the for form"
        (is (= {:root-ast {:node-type :clj/for
                           :bindings [{:node-type :clj/for-iteration

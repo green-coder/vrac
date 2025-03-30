@@ -185,12 +185,22 @@
         ast (case (:node-type ast)
               :clj/if
               (-> ast
-                  ;; Set a lifespan on the :then and :else nodes
+                  ;; Sets a lifespan on the :then and :else nodes
                   (assoc-in [:then :node.lifespan/path] (conj path :then))
                   (assoc-in [:else :node.lifespan/path] (conj path :else)))
 
+              :clj/when
+              (-> ast
+                  ;; Sets a lifespan on all the body nodes
+                  (update :bodies (fn [bodies]
+                                    (->> bodies
+                                         (mapv (fn [body]
+                                                 (-> body
+                                                     (assoc :node.lifespan/path (conj path :bodies)))))))))
+
               :clj/for
               (let [[bindings lifespan-path] (reduce (fn [[bindings lifespan] [index binding]]
+                                                       ;; Sets the lifespan on each binding
                                                        [(conj bindings (-> binding
                                                                            (assoc :node.lifespan/path lifespan)))
                                                         (if (= (:node-type binding) :clj/for-iteration)
@@ -200,6 +210,7 @@
                                                      (mc/seq-indexed (:bindings ast)))]
                 (-> ast
                     (assoc :bindings bindings)
+                    ;; Sets a lifespan on the :body node
                     (assoc-in [:body :node.lifespan/path] lifespan-path)))
 
               ;; else
