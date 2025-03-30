@@ -254,11 +254,14 @@
                                                   :symbol 'a
                                                   :value {:node-type :clj/invocation
                                                           :function {:node-type :clj/var
-                                                                     :symbol `inc}
+                                                                     :symbol `inc
+                                                                     :node.lifespan/path [:bindings 0 :symbol]}
                                                           :args [{:symbol 'x
-                                                                  :node-type :clj/var}]}}]
-                                      :node.lifespan/path [:bindings 0 :symbol]
-                                      :value {:node.lifespan/path [:bindings 0 :symbol]}}
+                                                                  :node-type :clj/var
+                                                                  :node.lifespan/path [:bindings 0 :symbol]}]
+                                                          :node.lifespan/path [:bindings 0 :symbol]}
+                                                  :node.lifespan/path [:bindings 0 :symbol]}]
+                                      :node.lifespan/path [:bindings 0 :symbol]}
 
                                      {:node-type :clj/for-when
                                       :cond {:node-type :clj/invocation
