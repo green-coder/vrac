@@ -233,6 +233,43 @@
                                                        :node.lifespan/path []}]
                                               :node.lifespan/path []}
                                       :node.lifespan/path []}
+
+                                     {:node-type :clj/for-let
+                                      :bindings [{:node-type :clj/let-binding
+                                                  :symbol 'a
+                                                  :value {:node-type :clj/invocation
+                                                          :function {:node-type :clj/var
+                                                                     :symbol `inc}
+                                                          :args [{:symbol 'x
+                                                                  :node-type :clj/var}]}}]
+                                      :node.lifespan/path [:bindings 0 :symbol]
+                                      :value {:node.lifespan/path [:bindings 0 :symbol]}}
+
+                                     {:node-type :clj/for-when
+                                      :cond {:node-type :clj/invocation
+                                             :function {:node-type :clj/var
+                                                        :symbol `even?
+                                                        :node.lifespan/path [:bindings 0 :symbol]}
+                                             :args [{:node-type :clj/var
+                                                     :symbol 'a
+                                                     :node.lifespan/path [:bindings 0 :symbol]}]
+                                             :node.lifespan/path [:bindings 0 :symbol]}
+                                      :node.lifespan/path [:bindings 0 :symbol]}
+
+                                     {:node-type :clj/for-while
+                                      :cond {:node-type :clj/invocation
+                                             :function {:node-type :clj/var
+                                                        :symbol `<
+                                                        :node.lifespan/path [:bindings 0 :symbol]}
+                                             :args [{:node-type :clj/var
+                                                     :symbol 'a
+                                                     :node.lifespan/path [:bindings 0 :symbol]}
+                                                    {:node-type :clj/value
+                                                     :value 10
+                                                     :node.lifespan/path [:bindings 0 :symbol]}]
+                                             :node.lifespan/path [:bindings 0 :symbol]}
+                                      :node.lifespan/path [:bindings 0 :symbol]}
+
                                      {:node-type :clj/for-iteration
                                       :symbol 'y
                                       :value {:node-type :clj/vector
@@ -244,20 +281,24 @@
                                                        :node.lifespan/path [:bindings 0 :symbol]}]
                                               :node.lifespan/path [:bindings 0 :symbol]}
                                       :node.lifespan/path [:bindings 0 :symbol]}]
+
                           :body {:node-type :clj/invocation
                                  :function {:node-type :clj/var
                                             :symbol `+
-                                            :node.lifespan/path [:bindings 1 :symbol]}
+                                            :node.lifespan/path [:bindings 4 :symbol]}
                                  :args [{:node-type :clj/var
                                          :symbol 'x
-                                         :node.lifespan/path [:bindings 1 :symbol]}
+                                         :node.lifespan/path [:bindings 4 :symbol]}
                                         {:node-type :clj/var
                                          :symbol 'y
-                                         :node.lifespan/path [:bindings 1 :symbol]}]
-                                 :node.lifespan/path [:bindings 1 :symbol]}
+                                         :node.lifespan/path [:bindings 4 :symbol]}]
+                                 :node.lifespan/path [:bindings 4 :symbol]}
                           :node.lifespan/path []}
                :path []}
               (-> '(for [x [1 2]
+                         :let [a (inc x)]
+                         :when (even? a)
+                         :while (< a 10)
                          y [10 20]]
                      (+ x y))
                   dsl->context

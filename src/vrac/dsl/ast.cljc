@@ -193,7 +193,9 @@
               (let [[bindings lifespan-path] (reduce (fn [[bindings lifespan] [index binding]]
                                                        [(conj bindings (-> binding
                                                                            (assoc :node.lifespan/path lifespan)))
-                                                        (conj path :bindings index :symbol)])
+                                                        (if (= (:node-type binding) :clj/for-iteration)
+                                                          (conj path :bindings index :symbol)
+                                                          lifespan)])
                                                      [[] lifespan-path]
                                                      (mc/seq-indexed (:bindings ast)))]
                 (-> ast
