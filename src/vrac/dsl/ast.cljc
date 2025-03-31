@@ -30,10 +30,10 @@
                        :value :one}
    :dsl/with-context  {:context :one
                        :bodies  :many}
+   :dsl/once          {:body :one}
    :dsl/signal        {:body :one}
    :dsl/state         {:body :one}
    :dsl/memo          {:body :one}
-   :dsl/snap          {:body :one}
    :dsl/effect        {:bodies :many}
    :dsl/context       {}
    :dsl/global        {}})

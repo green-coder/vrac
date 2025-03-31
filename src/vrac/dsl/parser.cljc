@@ -210,10 +210,10 @@
             {:node-type :dsl/memo
              :body (dsl->ast body)})
 
-          ;; snap
-          (= f `dsl/snap)
+          ;; once
+          (= f `dsl/once)
           (let [[body] args]
-            {:node-type :dsl/snap
+            {:node-type :dsl/once
              :body (dsl->ast body)})
 
           ;; effect

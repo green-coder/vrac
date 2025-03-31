@@ -103,6 +103,16 @@
                   :symbol    'b}]}
     `(+ ~'a ~'b)
 
+    {:node-type :dsl/once
+     :body      {:node-type :clj/invocation
+                 :function  {:node-type :clj/var
+                             :symbol    `+}
+                 :args      [{:node-type :clj/var
+                              :symbol    'a}
+                             {:node-type :clj/var
+                              :symbol    'b}]}}
+    `(dsl/once (+ ~'a ~'b))
+
     {:node-type :dsl/memo
      :body      {:node-type :clj/invocation
                  :function  {:node-type :clj/var
@@ -112,16 +122,6 @@
                              {:node-type :clj/var
                               :symbol    'b}]}}
     `(dsl/memo (+ ~'a ~'b))
-
-    {:node-type :dsl/snap
-     :body      {:node-type :clj/invocation
-                 :function  {:node-type :clj/var
-                             :symbol    `+}
-                 :args      [{:node-type :clj/var
-                              :symbol    'a}
-                             {:node-type :clj/var
-                              :symbol    'b}]}}
-    `(dsl/snap (+ ~'a ~'b))
 
     {:node-type :clj/do
      :bodies    [{:node-type :clj/invocation
