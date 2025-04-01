@@ -243,11 +243,11 @@
                             :key (dsl->ast k)
                             :value (dsl->ast v)})))}
 
-    (= x `dsl/context)
-    {:node-type :dsl/context}
-
     (= x `dsl/global)
     {:node-type :dsl/global}
+
+    (= x `dsl/context)
+    {:node-type :dsl/context}
 
     (symbol? x)
     {:node-type :clj/var

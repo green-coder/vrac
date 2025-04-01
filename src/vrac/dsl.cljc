@@ -5,12 +5,12 @@
 
 (def reserved-symbols '[$
                         do if quote ;; <- keywords of the Clojure languages, not defined in clojure.core
-                        context with-context
-                        global once signal state memo
+                        global context with-context
+                        once signal state memo
                         effect on-clean-up])
 
 ;; Those declarations help making the IDEs happy about the user's DSL expressions.
 (declare $
-         context with-context
-         global once signal state memo
+         global context with-context
+         once signal state memo
          effect on-clean-up)

@@ -28,15 +28,15 @@
    :clj/map           {:entries :many}
    :clj/map-entry     {:key   :one
                        :value :one}
+   :dsl/global        {}
+   :dsl/context       {}
    :dsl/with-context  {:context :one
                        :bodies  :many}
    :dsl/once          {:body :one}
    :dsl/signal        {:body :one}
    :dsl/state         {:body :one}
    :dsl/memo          {:body :one}
-   :dsl/effect        {:bodies :many}
-   :dsl/context       {}
-   :dsl/global        {}})
+   :dsl/effect        {:bodies :many}})
 
 (defn walk-ast
   "Walks and transforms a context containing the AST."
