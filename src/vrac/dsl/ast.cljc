@@ -36,7 +36,10 @@
    :dsl/signal        {:body :one}
    :dsl/state         {:body :one}
    :dsl/memo          {:body :one}
-   :dsl/effect        {:bodies :many}})
+   :dsl/derived       {:body :one}
+   :dsl/effect        {:bodies :many}
+   :dsl/effect-on     {:triggers :many
+                       :bodies   :many}})
 
 (defn walk-ast
   "Walks and transforms a context containing the AST."

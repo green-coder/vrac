@@ -199,12 +199,27 @@
                                :args      [{:node-type :clj/var
                                             :symbol    'a}
                                            {:node-type :clj/var
-                                            :symbol    'b}
-                                           {:node-type :clj/var
-                                            :symbol    'c}
-                                           {:node-type :clj/var
-                                            :symbol    'd}
-                                           {:node-type :clj/var
-                                            :symbol    'e}]}]}]}
+                                            :symbol    'b}]}]}]}
     `(dsl/effect
-       (prn (+ ~'a ~'b ~'c ~'d ~'e)))))
+       (prn (+ ~'a ~'b)))
+
+    {:node-type :dsl/effect
+     :triggers [{:node-type :clj/var
+                 :symbol 'a}
+                {:node-type :clj/invocation
+                 :function {:node-type :clj/var
+                            :symbol `even?}
+                 :args [{:node-type :clj/var
+                         :symbol 'b}]}]
+     :bodies    [{:node-type :clj/invocation
+                  :function  {:node-type :clj/var
+                              :symbol    `prn}
+                  :args      [{:node-type :clj/invocation
+                               :function  {:node-type :clj/var
+                                           :symbol    `+}
+                               :args      [{:node-type :clj/var
+                                            :symbol    'a}
+                                           {:node-type :clj/var
+                                            :symbol    'b}]}]}]}
+    `(dsl/effect-on [~'a (even? ~'b)]
+       (prn (+ ~'a ~'b)))))

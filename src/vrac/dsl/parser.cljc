@@ -222,6 +222,14 @@
             {:node-type :dsl/effect
              :bodies (mapv dsl->ast bodies)})
 
+          ;; effect-on
+          (= f `dsl/effect-on)
+          (let [[triggers & bodies] args]
+            (assert (vector? triggers) "The triggers should be a vector literal.")
+            {:node-type :dsl/effect
+             :triggers (mapv dsl->ast triggers)
+             :bodies (mapv dsl->ast bodies)})
+
           :else
           {:node-type :clj/invocation
            :function (dsl->ast f)

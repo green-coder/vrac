@@ -7,10 +7,10 @@
                         do if quote ;; <- keywords of the Clojure languages, not defined in clojure.core
                         global context with-context
                         once signal state memo
-                        effect on-clean-up])
+                        effect effect-on on-clean-up])
 
 ;; Those declarations help making the IDEs happy about the user's DSL expressions.
 (declare $
          global context with-context
          once signal state memo
-         effect on-clean-up)
+         effect effect-on on-clean-up)
