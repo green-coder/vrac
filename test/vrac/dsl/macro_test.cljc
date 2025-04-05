@@ -46,22 +46,22 @@
   (testing "associative destruct inside sequential destruct"
     (with-redefs [gensym (make-gensym)]
       (is (= `[~'x ~'y
-               ~'map__2 (nth ~'x 0)
-               ~'a (:a ~'map__2)
-               ~'map__3 (nth ~'x 1)
-               ~'b (:b ~'map__3)]
+               ~'map__1 (nth ~'x 0)
+               ~'a (:a ~'map__1)
+               ~'map__2 (nth ~'x 1)
+               ~'b (:b ~'map__2)]
              (#'sut/destructure '[[{a :a} {b :b} :as x] y])))))
 
   (testing "sequential destruct inside associative destruct"
     (with-redefs [gensym (make-gensym)]
       (is (= `[~'x ~'y
-               ~'vec__2 (:aa ~'x)
-               ~'a1 (nth ~'vec__2 0)
-               ~'a2 (nth ~'vec__2 1)
+               ~'vec__1 (:aa ~'x)
+               ~'a1 (nth ~'vec__1 0)
+               ~'a2 (nth ~'vec__1 1)
                ~'bb (:bb ~'x)
-               ~'vec__3 (:cc ~'bb)
-               ~'c1 (nth ~'vec__3 0)
-               ~'c2 (nth ~'vec__3 1)]
+               ~'vec__2 (:cc ~'bb)
+               ~'c1 (nth ~'vec__2 0)
+               ~'c2 (nth ~'vec__2 1)]
              (#'sut/destructure '[{[a1 a2]      :aa
                                    {[c1 c2] :cc
                                     :as     bb} :bb
@@ -108,22 +108,22 @@
 (deftest expand-let-bindings-test
   (testing "let bindings expansion"
     (with-redefs [gensym (make-gensym)]
-      (is (= `(let [~'map__2 {:a 1}
-                    ~'a (:a ~'map__2)]
+      (is (= `(~'let [~'map__1 {:a 1}
+                      ~'a (:a ~'map__1)]
                 ~'a)
-             (sut/expand-let-bindings `(let [~'{a :a} {:a 1}] ~'a)))))))
+             (sut/expand-let-bindings `(~'let [~'{a :a} {:a 1}] ~'a)))))))
 
 (deftest expand-for-bindings-test
   (testing "for bindings expansion"
     (with-redefs [gensym (make-gensym)]
-      (is (= `(for [~'item__2 [[1 2] [3 4]]
-                    :let [~'vec__3 ~'item__2
-                          ~'a (nth ~'vec__3 0)
-                          ~'b (nth ~'vec__3 1)]
-                    :let [~'vec__4 [10 20]
-                          ~'c (nth ~'vec__4 0)
-                          ~'d (nth ~'vec__4 1)]]
+      (is (= `(~'for [~'item__1 [[1 2] [3 4]]
+                      :let [~'vec__2 ~'item__1
+                            ~'a (nth ~'vec__2 0)
+                            ~'b (nth ~'vec__2 1)]
+                      :let [~'vec__3 [10 20]
+                            ~'c (nth ~'vec__3 0)
+                            ~'d (nth ~'vec__3 1)]]
                 [~'a ~'b ~'c ~'d])
-              (sut/expand-for-bindings `(for [~'[a b] ~[[1 2] [3 4]]
-                                              :let [~'[c d] ~'[10 20]]]
+              (sut/expand-for-bindings `(~'for [~'[a b] ~[[1 2] [3 4]]
+                                                :let [~'[c d] ~'[10 20]]]
                                           ~'[a b c d])))))))

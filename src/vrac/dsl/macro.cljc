@@ -116,7 +116,7 @@
   (let [destructured-bindings (destructure bindings)]
     (if (identical? destructured-bindings bindings)
       original-form
-      `(let ~destructured-bindings ~@bodies))))
+      `(~'let ~destructured-bindings ~@bodies))))
 
 (defn expand-for-bindings [[_ bindings body :as original-form]]
   (let [new-bindings (->> (partition 2 bindings)
@@ -135,11 +135,11 @@
              (->> (map vector new-bindings bindings)
                   (every? (fn [[new-x x]] (identical? new-x x)))))
       original-form
-      `(for ~new-bindings ~body))))
+      `(~'for ~new-bindings ~body))))
 
-(def macros
-  {`->   thread-first
-   `->>  thread-last
-   `as-> thread-as
-   `let  expand-let-bindings
-   `for  expand-for-bindings})
+(def default-macros
+  {'->   thread-first
+   '->>  thread-last
+   'as-> thread-as
+   'let  expand-let-bindings
+   'for  expand-for-bindings})

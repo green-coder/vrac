@@ -3,7 +3,7 @@
 (defn make-gensym
   "Provides a function which returns symbols consistently & deterministically."
   []
-  (let [n (atom 1)]
+  (let [n (atom 0)]
     (fn gensym
       ([] (gensym "G__"))
       ([prefix-string]
