@@ -36,7 +36,6 @@
    :dsl/signal        {:body :one}
    :dsl/state         {:body :one}
    :dsl/memo          {:body :one}
-   :dsl/derived       {:body :one}
    :dsl/effect        {:bodies :many}
    :dsl/effect-on     {:triggers :many
                        :bodies   :many}})
@@ -235,6 +234,70 @@
       (assoc :lifespan-path []) ; pass setup
       (walk-ast lifespan-pre-walk lifespan-post-walk)
       (dissoc :lifespan-path))) ; pass clean up
+
+;; -----------------------------------
+
+(defn add-reactivity-type-pre-walk [context]
+  context)
+
+(defn add-reactivity-type-post-walk [{:keys [root-ast path] :as context}]
+  (let [ast (get-in root-ast path)
+        ast (case (:node-type ast)
+              :dsl/signal
+              (-> ast
+                  (assoc :reactivity/type :signal))
+
+              :dsl/state
+              (-> ast
+                  (assoc :reactivity/type :memo))
+
+              :dsl/memo
+              (let [body-reactivity (:reactivity/type (:body ast))
+                    ast-node-reactivity (if (contains? #{:signal :memo} body-reactivity)
+                                          :memo
+                                          :none)]
+                (-> ast
+                    (assoc :reactivity/type ast-node-reactivity)))
+
+              (:dsl/once :clj/value)
+              (-> ast
+                  (assoc :reactivity/type :none))
+
+              :clj/var
+              (let [{:keys [var.value/path var/unbound]} ast
+                    bound-value (get-in root-ast path)]
+                (-> ast
+                    (cond-> (not unbound)
+                            (assoc :reactivity/type (:reactivity/type bound-value)))))
+
+              :clj/invocation
+              (let [args-reactivity-types (into #{} (map :reactivity/type) (:args ast))
+                    ast-node-reactivity-type (cond
+                                               (contains? args-reactivity-types :memo) :memo
+                                               (contains? args-reactivity-types :signal) :signal
+                                               (contains? args-reactivity-types :none) :none
+                                               :else nil)]
+                (-> ast
+                    (cond-> (some? ast-node-reactivity-type)
+                            (assoc :reactivity/type ast-node-reactivity-type))))
+
+              :clj/let
+              (let [last-body (last (:bodies ast))
+                    ast-node-reactivity-type (:reactivity/type last-body)]
+                (-> ast
+                    (cond-> (some? ast-node-reactivity-type)
+                            (assoc :reactivity/type ast-node-reactivity-type))))
+
+              ;; else
+              ast)]
+    (-> context
+        (assoc-in (cons :root-ast path) ast))))
+
+(defn add-reactivity-type-pass
+  ""
+  [context]
+  (-> context
+      (walk-ast add-reactivity-type-pre-walk add-reactivity-type-post-walk)))
 
 ;; -----------------------------------
 
