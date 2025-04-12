@@ -111,7 +111,7 @@
     (case (:node-type ast)
       ;; Add a var to the hashmap when we exit a let-binding, as it becomes available
       ;; in the next let-binding entries and the let's bodies.
-      :clj/let-binding
+      (:clj/let-binding :clj/for-iteration)
       (let [symbol (:symbol ast)]
         (-> context
             ;; Curate symbol->value-path's content

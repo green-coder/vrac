@@ -58,38 +58,74 @@
                (sut/walk-ast pre-process post-process))))))
 
 (deftest link-vars-to-their-definition-pass-test
-  (is (= {:root-ast {:node-type :clj/let
-                     :bindings  [{:node-type :clj/let-binding
-                                  :symbol    'a
-                                  :value     {:node-type :clj/value
-                                              :value     1}}
-                                 {:node-type :clj/let-binding
-                                  :symbol    'b
-                                  :value     {:node-type :clj/value
-                                              :value     2}}]
-                     :bodies    [{:node-type :clj/vector
-                                  :items     [{:node-type      :clj/var
-                                               :symbol         'a
-                                               :var.value/path [:bindings 0 :value]}]}
-                                 {:node-type :clj/map
-                                  :entries   [{:node-type :clj/map-entry
-                                               :key {:node-type      :clj/var
-                                                     :symbol         'a
-                                                     :var.value/path [:bindings 0 :value]}
-                                               :value {:node-type      :clj/var
-                                                       :symbol         'b
-                                                       :var.value/path [:bindings 1 :value]}}]}
-                                 {:node-type      :clj/var
-                                  :symbol         'a
-                                  :var.value/path [:bindings 0 :value]}]}
-          :path     []}
-         (-> (expand-dsl (let [a 1
-                               b 2]
-                           [a]
-                           {a b}
-                           a))
-             dsl->context
-             sut/link-vars-to-their-definition-pass))))
+  (testing "the let form"
+    (is (= {:root-ast {:node-type :clj/let
+                       :bindings  [{:node-type :clj/let-binding
+                                    :symbol    'a
+                                    :value     {:node-type :clj/value
+                                                :value     1}}
+                                   {:node-type :clj/let-binding
+                                    :symbol    'b
+                                    :value     {:node-type :clj/value
+                                                :value     2}}]
+                       :bodies    [{:node-type :clj/vector
+                                    :items     [{:node-type      :clj/var
+                                                 :symbol         'a
+                                                 :var.value/path [:bindings 0 :value]}]}
+                                   {:node-type :clj/map
+                                    :entries   [{:node-type :clj/map-entry
+                                                 :key {:node-type      :clj/var
+                                                       :symbol         'a
+                                                       :var.value/path [:bindings 0 :value]}
+                                                 :value {:node-type      :clj/var
+                                                         :symbol         'b
+                                                         :var.value/path [:bindings 1 :value]}}]}
+                                   {:node-type      :clj/var
+                                    :symbol         'a
+                                    :var.value/path [:bindings 0 :value]}]}
+            :path     []}
+           (-> (expand-dsl (let [a 1
+                                 b 2]
+                             [a]
+                             {a b}
+                             a))
+               dsl->context
+               sut/link-vars-to-their-definition-pass))))
+
+  (testing "the for form"
+    (is (= {:root-ast {:node-type :clj/for
+                       :bindings  [{:node-type :clj/for-iteration
+                                    :symbol    'a
+                                    :value     {:node-type :clj/value
+                                                :value     1}}]
+                       :body      {:node-type      :clj/var
+                                   :symbol         'a
+                                   :var.value/path [:bindings 0 :value]}}
+            :path     []}
+           (-> (expand-dsl (for [a 1]
+                             a))
+               dsl->context
+               sut/link-vars-to-their-definition-pass)))
+
+    (is (= {:root-ast {:node-type :clj/for
+                       :bindings [{:node-type :clj/for-iteration
+                                   :symbol 'a
+                                   :value {:node-type :clj/value
+                                           :value 1}}
+                                  {:node-type :clj/for-let
+                                   :bindings [{:node-type :clj/let-binding
+                                               :symbol 'b
+                                               :value {:node-type :clj/value
+                                                       :value 2}}]}]
+                       :body {:node-type :clj/var
+                              :symbol 'b
+                              :var.value/path [:bindings 1 :bindings 0 :value]}}
+            :path []}
+           (-> (expand-dsl (for [a 1
+                                 :let [b 2]]
+                             b))
+               dsl->context
+               sut/link-vars-to-their-definition-pass)))))
 
 (deftest add-var-usage-pass-test
   (is (= {:root-ast {:node-type :clj/let
