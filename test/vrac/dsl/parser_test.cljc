@@ -59,10 +59,32 @@
            (sut/expand-dsl
              (dsl/signal 1)))))
 
-  (testing "a signal inside a signal" ;; <- this does not pass in CLJS
+  ;; fails in CLJS
+  (testing "a signal inside a signal"
     (is (= '(vrac.dsl/signal (vrac.dsl/signal 1))
            (sut/expand-dsl
-             (dsl/signal (dsl/signal 1)))))))
+             (dsl/signal (dsl/signal 1))))))
+
+  ;; fails in CLJS
+  (testing "a signal inside a +"
+    (is (= '(clojure.core/+ (vrac.dsl/signal 1))
+           (sut/expand-dsl
+             (+ (dsl/signal 1))))))
+
+  ;; fails in CLJS
+  (testing "1 signal inside a let body"
+    (is (= '(let []
+              (vrac.dsl/signal 1))
+           (sut/expand-dsl
+             (let []
+               (dsl/signal 1))))))
+
+  (testing "1 signal inside a let binding"
+    (is (= '(let [a (vrac.dsl/signal 1)]
+              a)
+           (sut/expand-dsl
+             (let [a (dsl/signal 1)]
+               a))))))
 
 (deftest dsl->ast-test
   (are [expected-ast dsl]
