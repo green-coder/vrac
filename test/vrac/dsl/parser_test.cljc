@@ -14,7 +14,7 @@
               (sut/resolve-and-macro-expand-dsl '(let [a 1]
                                                    (-> a
                                                        inc))
-                                                (sut/symbol-resolver nil nil)
+                                                (sut/symbol-resolver *ns* nil nil)
                                                 macro/default-macros))))))
 
 (deftest expand-dsl-test
@@ -59,19 +59,16 @@
            (sut/expand-dsl
              (dsl/signal 1)))))
 
-  ;; fails in CLJS
   (testing "a signal inside a signal"
     (is (= '(vrac.dsl/signal (vrac.dsl/signal 1))
            (sut/expand-dsl
              (dsl/signal (dsl/signal 1))))))
 
-  ;; fails in CLJS
   (testing "a signal inside a +"
     (is (= '(clojure.core/+ (vrac.dsl/signal 1))
            (sut/expand-dsl
              (+ (dsl/signal 1))))))
 
-  ;; fails in CLJS
   (testing "1 signal inside a let body"
     (is (= '(let []
               (vrac.dsl/signal 1))

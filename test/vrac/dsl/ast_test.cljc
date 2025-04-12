@@ -349,20 +349,18 @@
              sut/link-vars-to-their-definition-pass
              sut/add-reactivity-type-pass)))
 
-  ;; FIXME: This does not work in CLJS
-  #?(:clj
-     (is (= {:root-ast {:node-type :dsl/memo
-                        :body {:node-type :dsl/signal
-                               :body {:node-type :clj/value
-                                      :value 1
-                                      :reactivity/type :none}
-                               :reactivity/type :signal}
-                        :reactivity/type :memo}
-             :path []}
-            (-> (expand-dsl (dsl/memo (dsl/signal 1)))
-                dsl->context
-                sut/link-vars-to-their-definition-pass
-                sut/add-reactivity-type-pass))))
+  (is (= {:root-ast {:node-type :dsl/memo
+                     :body {:node-type :dsl/signal
+                            :body {:node-type :clj/value
+                                   :value 1
+                                   :reactivity/type :none}
+                            :reactivity/type :signal}
+                     :reactivity/type :memo}
+          :path []}
+         (-> (expand-dsl (dsl/memo (dsl/signal 1)))
+             dsl->context
+             sut/link-vars-to-their-definition-pass
+             sut/add-reactivity-type-pass)))
 
   (is (= {:root-ast {:node-type :dsl/memo
                      :body {:node-type :clj/value

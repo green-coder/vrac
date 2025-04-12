@@ -20,10 +20,10 @@
       (symbol x-ns x-name))
     x))
 
-(defn symbol-resolver [env symb-ns-rename-map]
+(defn symbol-resolver [ns env symb-ns-rename-map]
   (fn [x]
     #?(:clj
-       (when-some [resolved-x-var (resolve env x)]
+       (when-some [resolved-x-var (ns-resolve ns env x)]
          (cond-> (symbol resolved-x-var)
            (some? symb-ns-rename-map) (rename-symb-ns symb-ns-rename-map))))))
 
@@ -113,9 +113,10 @@
 
 (defmacro expand-dsl [dsl-form]
   #?(:clj
-     (let [env &env
+     (let [ns *ns*
+           env &env
            is-compiling-cljs-code (some? (:ns env))
-           resolve-symbol (symbol-resolver env (when is-compiling-cljs-code {"cljs.core" "clojure.core"}))]
+           resolve-symbol (symbol-resolver ns env (when is-compiling-cljs-code {"cljs.core" "clojure.core"}))]
        (list 'quote (resolve-and-macro-expand-dsl dsl-form
                                                   resolve-symbol
                                                   macro/default-macros)))))
