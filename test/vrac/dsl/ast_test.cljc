@@ -318,85 +318,183 @@
                sut/add-lifespan-pass)))))
 
 (deftest add-reactivity-type-pass-test
-  (is (= {:root-ast {:node-type :clj/value
-                     :value 1
-                     :reactivity/type :none}
-          :path []}
-         (-> (expand-dsl 1)
-             dsl->context
-             sut/link-vars-to-their-definition-pass
-             sut/add-reactivity-type-pass)))
+  (testing "reactivity 'none' for values"
+    (is (= {:root-ast {:node-type :clj/value
+                       :value 1
+                       :reactivity/type :none}
+            :path []}
+           (-> (expand-dsl 1)
+               dsl->context
+               sut/link-vars-to-their-definition-pass
+               sut/add-reactivity-type-pass))))
 
-  (is (= {:root-ast {:node-type :dsl/signal
-                     :body {:node-type :clj/value
-                            :value 1
-                            :reactivity/type :none}
-                     :reactivity/type :signal}
-          :path []}
-         (-> (expand-dsl (dsl/signal 1))
-             dsl->context
-             sut/link-vars-to-their-definition-pass
-             sut/add-reactivity-type-pass)))
+  (testing "reactivity 'signal' for signals"
+    (is (= {:root-ast {:node-type :dsl/signal
+                       :body {:node-type :clj/value
+                              :value 1
+                              :reactivity/type :none}
+                       :reactivity/type :signal}
+            :path []}
+           (-> (expand-dsl (dsl/signal 1))
+               dsl->context
+               sut/link-vars-to-their-definition-pass
+               sut/add-reactivity-type-pass))))
 
-  (is (= {:root-ast {:node-type :dsl/state
-                     :body {:node-type :clj/value
-                            :value 1
-                            :reactivity/type :none}
-                     :reactivity/type :memo}
-          :path []}
-         (-> (expand-dsl (dsl/state 1))
-             dsl->context
-             sut/link-vars-to-their-definition-pass
-             sut/add-reactivity-type-pass)))
+  (testing "reactivity 'memo' for states"
+    (is (= {:root-ast {:node-type :dsl/state
+                       :body {:node-type :clj/value
+                              :value 1
+                              :reactivity/type :none}
+                       :reactivity/type :memo}
+            :path []}
+           (-> (expand-dsl (dsl/state 1))
+               dsl->context
+               sut/link-vars-to-their-definition-pass
+               sut/add-reactivity-type-pass))))
 
-  (is (= {:root-ast {:node-type :dsl/memo
-                     :body {:node-type :dsl/signal
-                            :body {:node-type :clj/value
-                                   :value 1
-                                   :reactivity/type :none}
-                            :reactivity/type :signal}
-                     :reactivity/type :memo}
-          :path []}
-         (-> (expand-dsl (dsl/memo (dsl/signal 1)))
-             dsl->context
-             sut/link-vars-to-their-definition-pass
-             sut/add-reactivity-type-pass)))
+  (testing "function invocations"
+    (is (= {:root-ast {:node-type :clj/invocation
+                       :function {:node-type :clj/var
+                                  :symbol 'clojure.core/+
+                                  :var/unbound true}
+                       :args [{:node-type :clj/value
+                               :value 1
+                               :reactivity/type :none}
+                              {:node-type :clj/value
+                               :value 1
+                               :reactivity/type :none}]
+                       :reactivity/type :none}
+            :path []}
+           (-> (expand-dsl (+ 1 1)) ;; reactivity none & none
+               dsl->context
+               sut/link-vars-to-their-definition-pass
+               sut/add-reactivity-type-pass)))
 
-  (is (= {:root-ast {:node-type :dsl/memo
-                     :body {:node-type :clj/value
-                            :value 1
-                            :reactivity/type :none}
-                     :reactivity/type :none}
-          :path []}
-         (-> (expand-dsl (dsl/memo 1))
-             dsl->context
-             sut/link-vars-to-their-definition-pass
-             sut/add-reactivity-type-pass)))
-
-  (is (= {:root-ast {:node-type :clj/let
-                     :bindings [{:node-type :clj/let-binding
-                                 :symbol 's
-                                 :value {:node-type :dsl/signal
-                                         :body {:node-type :clj/value
-                                                :value 1
-                                                :reactivity/type :none}
-                                         :reactivity/type :signal}}]
-                     :bodies [{:node-type :clj/invocation
-                               :function {:node-type :clj/var
-                                          :symbol 'clojure.core/+
-                                          :var/unbound true}
-                               :args [{:node-type :clj/var
-                                       :symbol 's
-                                       :var.value/path [:bindings 0 :value]
-                                       :reactivity/type :signal}
-                                      {:node-type :clj/value
-                                       :value 1
-                                       :reactivity/type :none}]
+    (is (= {:root-ast {:node-type :clj/invocation
+                       :function {:node-type :clj/var
+                                  :symbol 'clojure.core/+
+                                  :var/unbound true}
+                       :args [{:node-type :clj/value
+                               :value 1
+                               :reactivity/type :none}
+                              {:node-type :dsl/signal
+                               :body {:node-type :clj/value
+                                      :value 1
+                                      :reactivity/type :none}
                                :reactivity/type :signal}]
-                     :reactivity/type :signal}
-          :path []}
-         (-> (expand-dsl (let [s (dsl/signal 1)]
-                           (+ s 1)))
-             dsl->context
-             sut/link-vars-to-their-definition-pass
-             sut/add-reactivity-type-pass))))
+                       :reactivity/type :signal}
+            :path []}
+           (-> (expand-dsl (+ 1 (dsl/signal 1))) ;; reactivity none & signal
+               dsl->context
+               sut/link-vars-to-their-definition-pass
+               sut/add-reactivity-type-pass)))
+
+    (is (= {:root-ast {:node-type :clj/invocation
+                       :function {:node-type :clj/var
+                                  :symbol 'clojure.core/+
+                                  :var/unbound true}
+                       :args [{:node-type :clj/value
+                               :value 1
+                               :reactivity/type :none}
+                              {:node-type :dsl/state
+                               :body {:node-type :clj/value
+                                      :value 1
+                                      :reactivity/type :none}
+                               :reactivity/type :memo}]
+                       :reactivity/type :memo}
+            :path []}
+           (-> (expand-dsl (+ 1 (dsl/state 1))) ;; reactivity none & memo
+               dsl->context
+               sut/link-vars-to-their-definition-pass
+               sut/add-reactivity-type-pass)))
+
+    (testing "mixing signals and memo"
+      (is (= {:root-ast {:node-type :clj/invocation
+                         :function {:node-type :clj/var
+                                    :symbol 'clojure.core/+
+                                    :var/unbound true}
+                         :args [{:node-type :dsl/signal
+                                 :body {:node-type :clj/value
+                                        :value 1
+                                        :reactivity/type :none}
+                                 :reactivity/type :signal}
+                                {:node-type :dsl/state
+                                 :body {:node-type :clj/value
+                                        :value 1
+                                        :reactivity/type :none}
+                                 :reactivity/type :memo}]
+                         :reactivity/type :signal}
+              :path []}
+             (-> (expand-dsl (+ (dsl/signal 1) (dsl/state 1))) ;; reactivity signal & memo
+                 dsl->context
+                 sut/link-vars-to-their-definition-pass
+                 sut/add-reactivity-type-pass)))))
+
+  (testing "things wrapped in memo"
+    (is (= {:root-ast {:node-type :dsl/memo
+                       :body {:node-type :clj/value
+                              :value 1
+                              :reactivity/type :none}
+                       :reactivity/type :none}
+            :path []}
+           (-> (expand-dsl (dsl/memo 1))
+               dsl->context
+               sut/link-vars-to-their-definition-pass
+               sut/add-reactivity-type-pass)))
+
+    (is (= {:root-ast {:node-type :dsl/memo
+                       :body {:node-type :dsl/signal
+                              :body {:node-type :clj/value
+                                     :value 1
+                                     :reactivity/type :none}
+                              :reactivity/type :signal}
+                       :reactivity/type :memo}
+            :path []}
+           (-> (expand-dsl (dsl/memo (dsl/signal 1)))
+               dsl->context
+               sut/link-vars-to-their-definition-pass
+               sut/add-reactivity-type-pass)))
+
+    (is (= {:root-ast {:node-type :dsl/memo
+                       :body {:node-type :dsl/memo
+                              :body {:node-type :dsl/signal
+                                     :body {:node-type :clj/value
+                                            :value 1
+                                            :reactivity/type :none}
+                                     :reactivity/type :signal}
+                              :reactivity/type :memo}
+                       :reactivity/type :memo}
+            :path []}
+           (-> (expand-dsl (dsl/memo (dsl/memo (dsl/signal 1))))
+               dsl->context
+               sut/link-vars-to-their-definition-pass
+               sut/add-reactivity-type-pass))))
+
+  (testing "xxx wip"
+    (is (= {:root-ast {:node-type :clj/let
+                       :bindings [{:node-type :clj/let-binding
+                                   :symbol 's
+                                   :value {:node-type :dsl/signal
+                                           :body {:node-type :clj/value
+                                                  :value 1
+                                                  :reactivity/type :none}
+                                           :reactivity/type :signal}}]
+                       :bodies [{:node-type :clj/invocation
+                                 :function {:node-type :clj/var
+                                            :symbol 'clojure.core/+
+                                            :var/unbound true}
+                                 :args [{:node-type :clj/var
+                                         :symbol 's
+                                         :var.value/path [:bindings 0 :value]
+                                         :reactivity/type :signal}
+                                        {:node-type :clj/value
+                                         :value 1
+                                         :reactivity/type :none}]
+                                 :reactivity/type :signal}]
+                       :reactivity/type :signal}
+            :path []}
+           (-> (expand-dsl (let [s (dsl/signal 1)]
+                             (+ s 1)))
+               dsl->context
+               sut/link-vars-to-their-definition-pass
+               sut/add-reactivity-type-pass)))))

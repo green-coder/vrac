@@ -259,6 +259,17 @@
                 (-> ast
                     (assoc :reactivity/type ast-node-reactivity)))
 
+              :clj/invocation
+              (let [args-reactivity-types (into #{} (map :reactivity/type) (:args ast))
+                    ast-node-reactivity-type (cond
+                                               (contains? args-reactivity-types :signal) :signal
+                                               (contains? args-reactivity-types :memo) :memo
+                                               (contains? args-reactivity-types :none) :none
+                                               :else nil)]
+                (-> ast
+                    (cond-> (some? ast-node-reactivity-type)
+                            (assoc :reactivity/type ast-node-reactivity-type))))
+
               (:dsl/once :clj/value)
               (-> ast
                   (assoc :reactivity/type :none))
@@ -269,17 +280,6 @@
                 (-> ast
                     (cond-> (not unbound)
                             (assoc :reactivity/type (:reactivity/type bound-value)))))
-
-              :clj/invocation
-              (let [args-reactivity-types (into #{} (map :reactivity/type) (:args ast))
-                    ast-node-reactivity-type (cond
-                                               (contains? args-reactivity-types :memo) :memo
-                                               (contains? args-reactivity-types :signal) :signal
-                                               (contains? args-reactivity-types :none) :none
-                                               :else nil)]
-                (-> ast
-                    (cond-> (some? ast-node-reactivity-type)
-                            (assoc :reactivity/type ast-node-reactivity-type))))
 
               :clj/let
               (let [last-body (last (:bodies ast))
