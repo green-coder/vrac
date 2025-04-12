@@ -23,7 +23,7 @@
                        :args     :many}
    :clj/var           {}
    :clj/value         {}
-   :clj/set           {}
+   :clj/set           {:items :many}
    :clj/vector        {:items :many}
    :clj/map           {:entries :many}
    :clj/map-entry     {:key   :one
@@ -240,6 +240,13 @@
 (defn add-reactivity-type-pre-walk [context]
   context)
 
+(defn- comp-reactivities [reactivity-set]
+  (cond
+    (contains? reactivity-set :signal) :signal
+    (contains? reactivity-set :memo) :memo
+    (contains? reactivity-set :none) :none
+    :else nil))
+
 (defn add-reactivity-type-post-walk [{:keys [root-ast path] :as context}]
   (let [ast (get-in root-ast path)
         ast (case (:node-type ast)
@@ -259,17 +266,6 @@
                 (-> ast
                     (assoc :reactivity/type ast-node-reactivity)))
 
-              :clj/invocation
-              (let [args-reactivity-types (into #{} (map :reactivity/type) (:args ast))
-                    ast-node-reactivity-type (cond
-                                               (contains? args-reactivity-types :signal) :signal
-                                               (contains? args-reactivity-types :memo) :memo
-                                               (contains? args-reactivity-types :none) :none
-                                               :else nil)]
-                (-> ast
-                    (cond-> (some? ast-node-reactivity-type)
-                            (assoc :reactivity/type ast-node-reactivity-type))))
-
               (:dsl/once :clj/value)
               (-> ast
                   (assoc :reactivity/type :none))
@@ -281,9 +277,38 @@
                     (cond-> (not unbound)
                             (assoc :reactivity/type (:reactivity/type bound-value)))))
 
+              :clj/invocation
+              (let [ast-node-reactivity-type (comp-reactivities (into #{} (map :reactivity/type) (:args ast)))]
+                (-> ast
+                    (cond-> (some? ast-node-reactivity-type)
+                            (assoc :reactivity/type ast-node-reactivity-type))))
+
+              (:clj/set :clj/vector)
+              (let [ast-node-reactivity-type (comp-reactivities (into #{} (map :reactivity/type) (:items ast)))]
+                (-> ast
+                    (cond-> (some? ast-node-reactivity-type)
+                            (assoc :reactivity/type ast-node-reactivity-type))))
+
+              :clj/map
+              (let [ast-node-reactivity-type (comp-reactivities (into #{} (map :reactivity/type) (:entries ast)))]
+                (-> ast
+                    (cond-> (some? ast-node-reactivity-type)
+                            (assoc :reactivity/type ast-node-reactivity-type))))
+
+              :clj/map-entry
+              (let [ast-node-reactivity-type (comp-reactivities (into #{} (map :reactivity/type) [(:key ast) (:value ast)]))]
+                (-> ast
+                    (cond-> (some? ast-node-reactivity-type)
+                            (assoc :reactivity/type ast-node-reactivity-type))))
+
               :clj/let
-              (let [last-body (last (:bodies ast))
-                    ast-node-reactivity-type (:reactivity/type last-body)]
+              (let [ast-node-reactivity-type (-> ast :bodies last :reactivity/type)]
+                (-> ast
+                    (cond-> (some? ast-node-reactivity-type)
+                            (assoc :reactivity/type ast-node-reactivity-type))))
+
+              :clj/for
+              (let [ast-node-reactivity-type (-> ast :body :reactivity/type)]
                 (-> ast
                     (cond-> (some? ast-node-reactivity-type)
                             (assoc :reactivity/type ast-node-reactivity-type))))

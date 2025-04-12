@@ -245,7 +245,7 @@
 
     (set? x)
     {:node-type :clj/set
-     :items (set (mapv dsl->ast x))}
+     :items (mapv dsl->ast x)}
 
     (vector? x)
     {:node-type :clj/vector

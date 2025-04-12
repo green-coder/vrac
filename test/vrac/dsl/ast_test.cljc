@@ -506,7 +506,91 @@
                sut/link-vars-to-their-definition-pass
                sut/add-reactivity-type-pass))))
 
-  (testing "xxx wip"
+  (testing "set literal"
+    (is (= {:root-ast {:node-type :clj/set
+                       ;; warning: the items ordering is undefined
+                       :items [{:node-type :clj/value
+                                :value 1
+                                :reactivity/type :none}
+                               {:node-type :dsl/signal
+                                :body {:node-type :clj/value
+                                       :value 4
+                                       :reactivity/type :none}
+                                :reactivity/type :signal}
+                               {:node-type :clj/set
+                                :items [{:node-type :clj/value
+                                         :value 3
+                                         :reactivity/type :none}
+                                        {:node-type :clj/value
+                                         :value 2
+                                         :reactivity/type :none}]
+                                :reactivity/type :none}]
+                       :reactivity/type :signal}
+            :path []}
+           (-> (expand-dsl #{1 #{2 3} (dsl/signal 4)})
+               dsl->context
+               sut/link-vars-to-their-definition-pass
+               sut/add-reactivity-type-pass))))
+
+  (testing "vector literal"
+    (is (= {:root-ast {:node-type :clj/vector
+                       :items [{:node-type :clj/value
+                                :value 1
+                                :reactivity/type :none}
+                               {:node-type :clj/vector
+                                :items [{:node-type :clj/value
+                                         :value 2
+                                         :reactivity/type :none}
+                                        {:node-type :clj/value
+                                         :value 3
+                                         :reactivity/type :none}]
+                                :reactivity/type :none}
+                               {:node-type :dsl/signal
+                                :body {:node-type :clj/value
+                                       :value 4
+                                       :reactivity/type :none}
+                                :reactivity/type :signal}]
+                       :reactivity/type :signal}
+            :path []}
+           (-> (expand-dsl [1 [2 3] (dsl/signal 4)])
+               dsl->context
+               sut/link-vars-to-their-definition-pass
+               sut/add-reactivity-type-pass))))
+
+
+  (testing "hashmap literal"
+    (is (= {:root-ast {:node-type :clj/vector
+                       :items [{:node-type :clj/map
+                                :entries [{:node-type :clj/map-entry
+                                           :key {:node-type :clj/value
+                                                 :value :a
+                                                 :reactivity/type :none}
+                                           :value {:node-type :clj/value
+                                                   :value 1
+                                                   :reactivity/type :none}
+                                           :reactivity/type :none}]
+                                :reactivity/type :none}
+                               {:node-type :clj/map
+                                :entries [{:node-type :clj/map-entry
+                                           :key {:node-type :clj/value
+                                                 :value :b
+                                                 :reactivity/type :none}
+                                           :value {:node-type :dsl/signal
+                                                   :body {:node-type :clj/value
+                                                          :value 2
+                                                          :reactivity/type :none}
+                                                   :reactivity/type :signal}
+                                           :reactivity/type :signal}]
+                                :reactivity/type :signal}]
+                       :reactivity/type :signal}
+            :path []}
+           (-> (expand-dsl [{:a 1}
+                            {:b (dsl/signal 2)}])
+               dsl->context
+               sut/link-vars-to-their-definition-pass
+               sut/add-reactivity-type-pass))))
+
+  (testing "the let form"
     (is (= {:root-ast {:node-type :clj/let
                        :bindings [{:node-type :clj/let-binding
                                    :symbol 's
@@ -515,22 +599,63 @@
                                                   :value 1
                                                   :reactivity/type :none}
                                            :reactivity/type :signal}}]
-                       :bodies [{:node-type :clj/invocation
-                                 :function {:node-type :clj/var
-                                            :symbol 'clojure.core/+
-                                            :var/unbound true}
-                                 :args [{:node-type :clj/var
-                                         :symbol 's
-                                         :var.value/path [:bindings 0 :value]
-                                         :reactivity/type :signal}
-                                        {:node-type :clj/value
-                                         :value 1
-                                         :reactivity/type :none}]
+                       :bodies [{:node-type :clj/var
+                                 :symbol 's
+                                 :var.value/path [:bindings 0 :value]
                                  :reactivity/type :signal}]
                        :reactivity/type :signal}
             :path []}
            (-> (expand-dsl (let [s (dsl/signal 1)]
-                             (+ s 1)))
+                             s))
+               dsl->context
+               sut/link-vars-to-their-definition-pass
+               sut/add-reactivity-type-pass))))
+
+  (testing "the for form"
+    (is (= {:root-ast {:node-type :clj/for
+                       :bindings [{:node-type :clj/for-iteration
+                                   :symbol 'x
+                                   :value {:node-type :clj/vector
+                                           :items [{:node-type :clj/value
+                                                    :value 1
+                                                    :reactivity/type :none}
+                                                   {:node-type :clj/value
+                                                    :value 2
+                                                    :reactivity/type :none}]
+                                           :reactivity/type :none}}]
+                       :body {:node-type :clj/var
+                              :symbol 'x
+                              :var.value/path [:bindings 0 :value]
+                              :reactivity/type :none}
+                       :reactivity/type :none}
+            :path []}
+           (-> (expand-dsl (for [x [1 2]]
+                             x))
+               dsl->context
+               sut/link-vars-to-their-definition-pass
+               sut/add-reactivity-type-pass)))
+
+    (is (= {:root-ast {:node-type :clj/for
+                       :bindings [{:node-type :clj/for-iteration
+                                   :symbol 'x
+                                   :value {:node-type :clj/vector
+                                           :items [{:node-type :clj/value
+                                                    :value 1
+                                                    :reactivity/type :none}
+                                                   {:node-type :dsl/signal
+                                                    :body {:node-type :clj/value
+                                                           :value 2
+                                                           :reactivity/type :none}
+                                                    :reactivity/type :signal}]
+                                           :reactivity/type :signal}}]
+                       :body {:node-type :clj/var
+                              :symbol 'x
+                              :var.value/path [:bindings 0 :value]
+                              :reactivity/type :signal}
+                       :reactivity/type :signal}
+            :path []}
+           (-> (expand-dsl (for [x [1 (dsl/signal 2)]]
+                             x))
                dsl->context
                sut/link-vars-to-their-definition-pass
                sut/add-reactivity-type-pass)))))
