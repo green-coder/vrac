@@ -30,6 +30,12 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-clojure
 
+      - name: Install dependencies for unit tests
+        run: npm ci
+
+      - name: Unit tests
+        run: ./bin/kaocha
+
       - name: Install dependencies
         working-directory: ./playwright
         run: npm ci
