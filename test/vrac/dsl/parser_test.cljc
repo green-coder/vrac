@@ -1,5 +1,6 @@
 (ns vrac.dsl.parser-test
   (:require [clojure.test :refer [deftest testing is are]]
+            [vrac.dsl :as dsl]
             [vrac.dsl.macro :as macro]
             [vrac.dsl.parser :as sut]))
 
@@ -51,7 +52,17 @@
              (let [a 1
                    b 'x
                    c ''y]
-               'd))))))
+               'd)))))
+
+  (testing "a signal"
+    (is (= '(vrac.dsl/signal 1)
+           (sut/expand-dsl
+             (dsl/signal 1)))))
+
+  (testing "a signal inside a signal" ;; <- this does not pass in CLJS
+    (is (= '(vrac.dsl/signal (vrac.dsl/signal 1))
+           (sut/expand-dsl
+             (dsl/signal (dsl/signal 1)))))))
 
 (deftest dsl->ast-test
   (are [expected-ast dsl]
