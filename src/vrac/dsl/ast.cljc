@@ -244,7 +244,7 @@
   (cond
     (contains? reactivity-set :signal) :signal
     (contains? reactivity-set :memo) :memo
-    (contains? reactivity-set :none) :none
+    (contains? reactivity-set :value) :value
     :else nil))
 
 (defn add-reactivity-type-post-walk [{:keys [root-ast path] :as context}]
@@ -262,13 +262,13 @@
               (let [body-reactivity (:reactivity/type (:body ast))
                     ast-node-reactivity (if (contains? #{:signal :memo} body-reactivity)
                                           :memo
-                                          :none)]
+                                          :value)]
                 (-> ast
                     (assoc :reactivity/type ast-node-reactivity)))
 
               (:dsl/once :clj/value)
               (-> ast
-                  (assoc :reactivity/type :none))
+                  (assoc :reactivity/type :value))
 
               :clj/var
               (let [{:keys [var.value/path var/unbound]} ast

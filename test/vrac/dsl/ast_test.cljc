@@ -424,7 +424,7 @@
   (testing "reactivity 'none' for values"
     (is (= {:node-type :clj/value
             :value 1
-            :reactivity/type :none}
+            :reactivity/type :value}
            (-> (expand-dsl 1)
                parser/dsl->ast
                sut/make-context
@@ -436,7 +436,7 @@
     (is (= {:node-type :dsl/signal
             :body {:node-type :clj/value
                    :value 1
-                   :reactivity/type :none}
+                   :reactivity/type :value}
             :reactivity/type :signal}
            (-> (expand-dsl (dsl/signal 1))
                parser/dsl->ast
@@ -449,7 +449,7 @@
     (is (= {:node-type :dsl/state
             :body {:node-type :clj/value
                    :value 1
-                   :reactivity/type :none}
+                   :reactivity/type :value}
             :reactivity/type :memo}
            (-> (expand-dsl (dsl/state 1))
                parser/dsl->ast
@@ -465,11 +465,11 @@
                        :var/unbound true}
             :args [{:node-type :clj/value
                     :value 1
-                    :reactivity/type :none}
+                    :reactivity/type :value}
                    {:node-type :clj/value
                     :value 1
-                    :reactivity/type :none}]
-            :reactivity/type :none}
+                    :reactivity/type :value}]
+            :reactivity/type :value}
            (-> (expand-dsl (+ 1 1)) ;; reactivity none & none
                parser/dsl->ast
                sut/make-context
@@ -483,11 +483,11 @@
                        :var/unbound true}
             :args [{:node-type :clj/value
                     :value 1
-                    :reactivity/type :none}
+                    :reactivity/type :value}
                    {:node-type :dsl/signal
                     :body {:node-type :clj/value
                            :value 1
-                           :reactivity/type :none}
+                           :reactivity/type :value}
                     :reactivity/type :signal}]
             :reactivity/type :signal}
            (-> (expand-dsl (+ 1 (dsl/signal 1))) ;; reactivity none & signal
@@ -503,11 +503,11 @@
                        :var/unbound true}
             :args [{:node-type :clj/value
                     :value 1
-                    :reactivity/type :none}
+                    :reactivity/type :value}
                    {:node-type :dsl/state
                     :body {:node-type :clj/value
                            :value 1
-                           :reactivity/type :none}
+                           :reactivity/type :value}
                     :reactivity/type :memo}]
             :reactivity/type :memo}
            (-> (expand-dsl (+ 1 (dsl/state 1))) ;; reactivity none & memo
@@ -525,12 +525,12 @@
               :args [{:node-type :dsl/signal
                       :body {:node-type :clj/value
                              :value 1
-                             :reactivity/type :none}
+                             :reactivity/type :value}
                       :reactivity/type :signal}
                      {:node-type :dsl/state
                       :body {:node-type :clj/value
                              :value 1
-                             :reactivity/type :none}
+                             :reactivity/type :value}
                       :reactivity/type :memo}]
               :reactivity/type :signal}
              (-> (expand-dsl (+ (dsl/signal 1) (dsl/state 1))) ;; reactivity signal & memo
@@ -544,8 +544,8 @@
     (is (= {:node-type :dsl/memo
             :body {:node-type :clj/value
                    :value 1
-                   :reactivity/type :none}
-            :reactivity/type :none}
+                   :reactivity/type :value}
+            :reactivity/type :value}
            (-> (expand-dsl (dsl/memo 1))
                parser/dsl->ast
                sut/make-context
@@ -557,7 +557,7 @@
             :body {:node-type :dsl/signal
                    :body {:node-type :clj/value
                           :value 1
-                          :reactivity/type :none}
+                          :reactivity/type :value}
                    :reactivity/type :signal}
             :reactivity/type :memo}
            (-> (expand-dsl (dsl/memo (dsl/signal 1)))
@@ -572,7 +572,7 @@
                    :body {:node-type :dsl/signal
                           :body {:node-type :clj/value
                                  :value 1
-                                 :reactivity/type :none}
+                                 :reactivity/type :value}
                           :reactivity/type :signal}
                    :reactivity/type :memo}
             :reactivity/type :memo}
@@ -588,20 +588,20 @@
             ;; warning: the items ordering is undefined
             :items [{:node-type :clj/value
                      :value 1
-                     :reactivity/type :none}
+                     :reactivity/type :value}
                     {:node-type :dsl/signal
                      :body {:node-type :clj/value
                             :value 4
-                            :reactivity/type :none}
+                            :reactivity/type :value}
                      :reactivity/type :signal}
                     {:node-type :clj/set
                      :items [{:node-type :clj/value
                               :value 3
-                              :reactivity/type :none}
+                              :reactivity/type :value}
                              {:node-type :clj/value
                               :value 2
-                              :reactivity/type :none}]
-                     :reactivity/type :none}]
+                              :reactivity/type :value}]
+                     :reactivity/type :value}]
             :reactivity/type :signal}
            (-> (expand-dsl #{1 #{2 3} (dsl/signal 4)})
                parser/dsl->ast
@@ -614,19 +614,19 @@
     (is (= {:node-type :clj/vector
             :items [{:node-type :clj/value
                      :value 1
-                     :reactivity/type :none}
+                     :reactivity/type :value}
                     {:node-type :clj/vector
                      :items [{:node-type :clj/value
                               :value 2
-                              :reactivity/type :none}
+                              :reactivity/type :value}
                              {:node-type :clj/value
                               :value 3
-                              :reactivity/type :none}]
-                     :reactivity/type :none}
+                              :reactivity/type :value}]
+                     :reactivity/type :value}
                     {:node-type :dsl/signal
                      :body {:node-type :clj/value
                             :value 4
-                            :reactivity/type :none}
+                            :reactivity/type :value}
                      :reactivity/type :signal}]
             :reactivity/type :signal}
            (-> (expand-dsl [1 [2 3] (dsl/signal 4)])
@@ -643,21 +643,21 @@
                      :entries [{:node-type :clj/map-entry
                                 :key {:node-type :clj/value
                                       :value :a
-                                      :reactivity/type :none}
+                                      :reactivity/type :value}
                                 :value {:node-type :clj/value
                                         :value 1
-                                        :reactivity/type :none}
-                                :reactivity/type :none}]
-                     :reactivity/type :none}
+                                        :reactivity/type :value}
+                                :reactivity/type :value}]
+                     :reactivity/type :value}
                     {:node-type :clj/map
                      :entries [{:node-type :clj/map-entry
                                 :key {:node-type :clj/value
                                       :value :b
-                                      :reactivity/type :none}
+                                      :reactivity/type :value}
                                 :value {:node-type :dsl/signal
                                         :body {:node-type :clj/value
                                                :value 2
-                                               :reactivity/type :none}
+                                               :reactivity/type :value}
                                         :reactivity/type :signal}
                                 :reactivity/type :signal}]
                      :reactivity/type :signal}]
@@ -677,7 +677,7 @@
                         :value {:node-type :dsl/signal
                                 :body {:node-type :clj/value
                                        :value 1
-                                       :reactivity/type :none}
+                                       :reactivity/type :value}
                                 :reactivity/type :signal}}]
             :bodies [{:node-type :clj/var
                       :symbol 's
@@ -699,16 +699,16 @@
                         :value {:node-type :clj/vector
                                 :items [{:node-type :clj/value
                                          :value 1
-                                         :reactivity/type :none}
+                                         :reactivity/type :value}
                                         {:node-type :clj/value
                                          :value 2
-                                         :reactivity/type :none}]
-                                :reactivity/type :none}}]
+                                         :reactivity/type :value}]
+                                :reactivity/type :value}}]
             :body {:node-type :clj/var
                    :symbol 'x
                    :var.value/path [:bindings 0 :value]
-                   :reactivity/type :none}
-            :reactivity/type :none}
+                   :reactivity/type :value}
+            :reactivity/type :value}
            (-> (expand-dsl (for [x [1 2]]
                              x))
                parser/dsl->ast
@@ -723,11 +723,11 @@
                         :value {:node-type :clj/vector
                                 :items [{:node-type :clj/value
                                          :value 1
-                                         :reactivity/type :none}
+                                         :reactivity/type :value}
                                         {:node-type :dsl/signal
                                          :body {:node-type :clj/value
                                                 :value 2
-                                                :reactivity/type :none}
+                                                :reactivity/type :value}
                                          :reactivity/type :signal}]
                                 :reactivity/type :signal}}]
             :body {:node-type :clj/var
