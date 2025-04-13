@@ -81,7 +81,29 @@
               a)
            (sut/expand-dsl
              (let [a (dsl/signal 1)]
-               a))))))
+               a)))))
+
+  (testing "effect"
+    (is (= '(let [a 1
+                  b 2]
+              (vrac.dsl/effect
+                (clojure.core/prn (clojure.core/+ a b))))
+           (sut/expand-dsl
+             (let [a 1
+                   b 2]
+               (dsl/effect
+                 (prn (+ a b))))))))
+
+  (testing "effect-on"
+    (is (= '(let [a 1
+                  b 2]
+              (vrac.dsl/effect-on [a (clojure.core/even? b)]
+                (clojure.core/prn (clojure.core/+ a b))))
+           (sut/expand-dsl
+             (let [a 1
+                   b 2]
+               (dsl/effect-on [a (even? b)]
+                 (prn (+ a b)))))))))
 
 (deftest dsl->ast-test
   (are [expected-ast dsl]
@@ -244,7 +266,7 @@
     '(vrac.dsl/effect
        (clojure.core/prn (clojure.core/+ a b)))
 
-    {:node-type :dsl/effect
+    {:node-type :dsl/effect-on
      :triggers [{:node-type :clj/var
                  :symbol 'a}
                 {:node-type :clj/invocation

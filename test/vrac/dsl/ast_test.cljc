@@ -355,6 +355,69 @@
                parser/dsl->ast
                sut/make-context
                sut/add-lifespan-pass
+               :root-ast))))
+
+  (testing "effect"
+    (is (= {:node-type :clj/let
+            :bindings [{:node-type :clj/let-binding
+                        :symbol 'a
+                        :value {:node-type :dsl/signal
+                                :body {:node-type :clj/value
+                                       :value 1
+                                       :node.lifespan/path []}
+                                :node.lifespan/path []}
+                        :node.lifespan/path []}]
+            :bodies [{:node-type :dsl/effect
+                      ;; Should we parse the content of the effect, or treat it as a CLJC escape hatch?
+                      :bodies [{:node-type :clj/invocation
+                                :function {:node-type :clj/var
+                                           :symbol 'clojure.core/prn
+                                           :node.lifespan/path []}
+                                :args [{:node-type :clj/var
+                                        :symbol 'a
+                                        :node.lifespan/path []}]
+                                :node.lifespan/path []}]
+                      :node.lifespan/path []}]
+            :node.lifespan/path []}
+           (-> (expand-dsl (let [a (dsl/signal 1)]
+                             (dsl/effect
+                               (prn a))))
+               parser/dsl->ast
+               sut/make-context
+               sut/add-lifespan-pass
+               :root-ast))))
+
+  (testing "effect-on"
+    (is (= {:node-type :clj/let
+            :bindings [{:node-type :clj/let-binding
+                        :symbol 'a
+                        :value {:node-type :dsl/signal
+                                :body {:node-type :clj/value
+                                       :value 1
+                                       :node.lifespan/path []}
+                                :node.lifespan/path []}
+                        :node.lifespan/path []}]
+            :bodies [{:node-type :dsl/effect-on
+                      :triggers [{:node-type :clj/var
+                                  :symbol 'a
+                                  :node.lifespan/path []}]
+                      ;; Should we parse the content of the effect, or treat it as a CLJC escape hatch?
+                      :bodies [{:node-type :clj/invocation
+                                :function {:node-type :clj/var
+                                           :symbol 'clojure.core/prn
+                                           :node.lifespan/path []}
+                                :args [{:node-type :clj/var
+                                        :symbol 'a
+                                        :node.lifespan/path []}]
+                                :node.lifespan/path []}]
+                      :node.lifespan/path []}]
+            :node.lifespan/path []}
+           (-> (expand-dsl (let [a (dsl/signal 1)]
+                             (dsl/effect-on [a]
+                               (prn a))))
+               parser/dsl->ast
+               sut/make-context
+               sut/add-lifespan-pass
                :root-ast)))))
 
 (deftest add-reactivity-type-pass-test

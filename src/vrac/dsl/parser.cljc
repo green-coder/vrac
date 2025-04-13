@@ -117,9 +117,9 @@
            env &env
            is-compiling-cljs-code (some? (:ns env))
            resolve-symbol (symbol-resolver ns env (when is-compiling-cljs-code {"cljs.core" "clojure.core"}))]
-       (list 'quote (resolve-and-macro-expand-dsl dsl-form
-                                                  resolve-symbol
-                                                  macro/default-macros)))))
+       `'~(resolve-and-macro-expand-dsl dsl-form
+                                        resolve-symbol
+                                        macro/default-macros))))
 
 (defn dsl->ast [x]
   "Shallow transformation from a DSL expression to an AST."
@@ -234,7 +234,7 @@
           (= f `dsl/effect-on)
           (let [[triggers & bodies] args]
             (assert (vector? triggers) "The triggers should be a vector literal.")
-            {:node-type :dsl/effect
+            {:node-type :dsl/effect-on
              :triggers (mapv dsl->ast triggers)
              :bodies (mapv dsl->ast bodies)})
 
