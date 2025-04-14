@@ -54,7 +54,7 @@
                (sut/walk-ast pre-process post-process))))))
 
 (deftest link-vars-to-their-definition-pass-test
-  (testing "the let form"
+  (testing "let"
     (is (= {:node-type :clj/let
             :bindings  [{:node-type :clj/let-binding
                          :symbol    'a
@@ -67,18 +67,18 @@
             :bodies    [{:node-type :clj/vector
                          :items     [{:node-type      :clj/var
                                       :symbol         'a
-                                      :var.value/path [:bindings 0 :value]}]}
+                                      :var.definition/path [:bindings 0]}]}
                         {:node-type :clj/map
                          :entries   [{:node-type :clj/map-entry
                                       :key {:node-type      :clj/var
                                             :symbol         'a
-                                            :var.value/path [:bindings 0 :value]}
+                                            :var.definition/path [:bindings 0]}
                                       :value {:node-type      :clj/var
                                               :symbol         'b
-                                              :var.value/path [:bindings 1 :value]}}]}
+                                              :var.definition/path [:bindings 1]}}]}
                         {:node-type      :clj/var
                          :symbol         'a
-                         :var.value/path [:bindings 0 :value]}]}
+                         :var.definition/path [:bindings 0]}]}
            (-> (expand-dsl (let [a 1
                                  b 2]
                              [a]
@@ -89,7 +89,7 @@
                sut/link-vars-to-their-definition-pass
                :root-ast))))
 
-  (testing "the for form"
+  (testing "for"
     (is (= {:node-type :clj/for
             :bindings  [{:node-type :clj/for-iteration
                          :symbol    'a
@@ -97,7 +97,7 @@
                                      :value     1}}]
             :body      {:node-type      :clj/var
                         :symbol         'a
-                        :var.value/path [:bindings 0 :value]}}
+                        :var.definition/path [:bindings 0]}}
            (-> (expand-dsl (for [a 1]
                              a))
                parser/dsl->ast
@@ -117,9 +117,31 @@
                                             :value 2}}]}]
             :body {:node-type :clj/var
                    :symbol 'b
-                   :var.value/path [:bindings 1 :bindings 0 :value]}}
+                   :var.definition/path [:bindings 1 :bindings 0]}}
            (-> (expand-dsl (for [a 1
                                  :let [b 2]]
+                             b))
+               parser/dsl->ast
+               sut/make-context
+               sut/link-vars-to-their-definition-pass
+               :root-ast))))
+
+  (testing "defn"
+    (is (= {:node-type :clj/defn
+            :fn-name 'foo
+            :params [{:node-type :clj/fn-param
+                      :symbol 'a}
+                     {:node-type :clj/fn-param
+                      :symbol 'b
+                      :metadata {:tag 'bar}}]
+            :bodies [{:node-type :clj/var
+                      :symbol 'a
+                      :var.definition/path [:params 0]}
+                     {:node-type :clj/var
+                      :symbol 'b
+                      :var.definition/path [:params 1]}]}
+           (-> (expand-dsl (defn foo [a ^bar b]
+                             a
                              b))
                parser/dsl->ast
                sut/make-context
@@ -131,8 +153,8 @@
           :bindings [{:node-type :clj/let-binding
                       :symbol 'a
                       :value {:node-type :clj/value
-                              :value 1
-                              :var.usage/paths [[:bindings 1 :value :args 0]]}}
+                              :value 1}
+                      :var.usage/paths [[:bindings 1 :value :args 0]]}
                      {:node-type :clj/let-binding
                       :symbol 'a
                       :value {:node-type :clj/invocation
@@ -141,19 +163,19 @@
                                          :var/unbound true}
                               :args [{:node-type :clj/var
                                       :symbol 'a
-                                      :var.value/path [:bindings 0 :value]}]
-                              :var.usage/paths [[:bodies 0 :args 0]
-                                                [:bodies 0 :args 1]]}}]
+                                      :var.definition/path [:bindings 0]}]}
+                      :var.usage/paths [[:bodies 0 :args 0]
+                                        [:bodies 0 :args 1]]}]
           :bodies [{:node-type :clj/invocation
                     :function {:node-type   :clj/var
                                :symbol      'clojure.core/+
                                :var/unbound true}
                     :args [{:node-type :clj/var
                             :symbol 'a
-                            :var.value/path [:bindings 1 :value]}
+                            :var.definition/path [:bindings 1]}
                            {:node-type :clj/var
                             :symbol 'a
-                            :var.value/path [:bindings 1 :value]}]}]}
+                            :var.definition/path [:bindings 1]}]}]}
          (-> (expand-dsl (let [a 1
                                a (inc a)]
                            (+ a a)))
@@ -225,7 +247,7 @@
                sut/add-lifespan-pass
                :root-ast))))
 
-  (testing "the if form"
+  (testing "if"
     (is (= {:node-type :clj/if
             :cond {:node-type :clj/invocation
                    :function {:node-type :clj/var
@@ -253,7 +275,7 @@
                sut/add-lifespan-pass
                :root-ast))))
 
-  (testing "the when form"
+  (testing "when"
     (is (= {:node-type :clj/when
             :cond {:node-type :clj/value
                    :value true
@@ -269,7 +291,7 @@
                sut/add-lifespan-pass
                :root-ast))))
 
-  (testing "the for form"
+  (testing "for"
     (is (= {:node-type :clj/for
             :bindings [{:node-type :clj/for-iteration
                         :symbol 'x
@@ -415,6 +437,40 @@
            (-> (expand-dsl (let [a (dsl/signal 1)]
                              (dsl/effect-on [a]
                                (prn a))))
+               parser/dsl->ast
+               sut/make-context
+               sut/add-lifespan-pass
+               :root-ast))))
+
+  (testing "defn"
+    (is (= {:node-type :clj/let,
+            :bindings [{:node-type :clj/let-binding
+                        :symbol 'x
+                        :value {:node-type :clj/value
+                                :value 1
+                                :node.lifespan/path []}
+                        :node.lifespan/path []}]
+            :bodies [{:node-type :clj/defn
+                      :fn-name 'foo
+                      :params [{:node-type :clj/fn-param
+                                :symbol 'a
+                                :node.lifespan/path []}
+                               {:node-type :clj/fn-param
+                                :symbol 'b
+                                :metadata {:tag 'bar}
+                                :node.lifespan/path []}]
+                      :bodies [{:node-type :clj/var
+                                :symbol 'a
+                                :node.lifespan/path [:bodies 0 :bodies]}
+                               {:node-type :clj/var
+                                :symbol 'b
+                                :node.lifespan/path [:bodies 0 :bodies]}]
+                      :node.lifespan/path []}]
+            :node.lifespan/path []}
+           (-> (expand-dsl (let [x 1]
+                             (defn foo [a ^bar b]
+                               a
+                               b)))
                parser/dsl->ast
                sut/make-context
                sut/add-lifespan-pass
@@ -670,7 +726,7 @@
                sut/add-reactivity-type-pass
                :root-ast))))
 
-  (testing "the let form"
+  (testing "let"
     (is (= {:node-type :clj/let
             :bindings [{:node-type :clj/let-binding
                         :symbol 's
@@ -678,10 +734,11 @@
                                 :body {:node-type :clj/value
                                        :value 1
                                        :reactivity/type :value}
-                                :reactivity/type :signal}}]
+                                :reactivity/type :signal}
+                        :reactivity/type :signal}]
             :bodies [{:node-type :clj/var
                       :symbol 's
-                      :var.value/path [:bindings 0 :value]
+                      :var.definition/path [:bindings 0]
                       :reactivity/type :signal}]
             :reactivity/type :signal}
            (-> (expand-dsl (let [s (dsl/signal 1)]
@@ -692,7 +749,7 @@
                sut/add-reactivity-type-pass
                :root-ast))))
 
-  (testing "the for form"
+  (testing "for"
     (is (= {:node-type :clj/for
             :bindings [{:node-type :clj/for-iteration
                         :symbol 'x
@@ -703,10 +760,11 @@
                                         {:node-type :clj/value
                                          :value 2
                                          :reactivity/type :value}]
-                                :reactivity/type :value}}]
+                                :reactivity/type :value}
+                        :reactivity/type :value}]
             :body {:node-type :clj/var
                    :symbol 'x
-                   :var.value/path [:bindings 0 :value]
+                   :var.definition/path [:bindings 0]
                    :reactivity/type :value}
             :reactivity/type :value}
            (-> (expand-dsl (for [x [1 2]]
@@ -729,14 +787,55 @@
                                                 :value 2
                                                 :reactivity/type :value}
                                          :reactivity/type :signal}]
-                                :reactivity/type :signal}}]
+                                :reactivity/type :signal}
+                        :reactivity/type :signal}]
             :body {:node-type :clj/var
                    :symbol 'x
-                   :var.value/path [:bindings 0 :value]
+                   :var.definition/path [:bindings 0]
                    :reactivity/type :signal}
             :reactivity/type :signal}
            (-> (expand-dsl (for [x [1 (dsl/signal 2)]]
                              x))
+               parser/dsl->ast
+               sut/make-context
+               sut/link-vars-to-their-definition-pass
+               sut/add-reactivity-type-pass
+               :root-ast))))
+
+  (testing "defn"
+    (is (= {:node-type :clj/defn,
+            :fn-name 'foo
+            :params [{:node-type :clj/fn-param
+                      :symbol 'a}
+                     {:node-type :clj/fn-param
+                      :symbol 'b
+                      :metadata {:tag 'value}
+                      :reactivity/type :value}
+                     {:node-type :clj/fn-param
+                      :symbol 'c
+                      :metadata {:tag 'signal}
+                      :reactivity/type :signal}
+                     {:node-type :clj/fn-param
+                      :symbol 'd
+                      :metadata {:tag 'memo}
+                      :reactivity/type :memo}]
+            :bodies [{:node-type :clj/var
+                      :symbol 'a
+                      :var.definition/path [:params 0]}
+                     {:node-type :clj/var
+                      :symbol 'b
+                      :var.definition/path [:params 1]
+                      :reactivity/type :value}
+                     {:node-type :clj/var
+                      :symbol 'c
+                      :var.definition/path [:params 2]
+                      :reactivity/type :signal}
+                     {:node-type :clj/var
+                      :symbol 'd
+                      :var.definition/path [:params 3]
+                      :reactivity/type :memo}]}
+           (-> (expand-dsl (defn foo [a ^value b ^signal c ^memo d]
+                             a b c d))
                parser/dsl->ast
                sut/make-context
                sut/link-vars-to-their-definition-pass

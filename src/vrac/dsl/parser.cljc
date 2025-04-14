@@ -53,6 +53,13 @@
                                      (let [[f & args] x]
                                        ;;(prn [:expanded x])
                                        (cond
+                                         ;; (defn ,,, [,,,] ,,,)
+                                         (= f 'defn)
+                                         (let [[fn-name params & bodies] args
+                                               local-vars (into local-vars params)
+                                               bodies (map (mc/partial-> resolve-and-expand local-vars) bodies)]
+                                           `(~'defn ~fn-name ~params ~@bodies))
+
                                          ;; (let [,,,] ,,,)
                                          (= f 'let)
                                          (let [[bindings & bodies] args
@@ -131,6 +138,19 @@
        :value ()}
       (let [[f & args] x]
         (cond
+          ;; (defn fn-name params & bodies)
+          (= f 'defn)
+          (let [[fn-name params & bodies] args]
+            {:node-type :clj/defn
+             :fn-name fn-name
+             :params (->> params
+                          (mapv (fn [symbol]
+                                  (let [metadata (meta symbol)]
+                                    (-> {:node-type :clj/fn-param
+                                         :symbol symbol}
+                                        (cond-> (seq metadata) (assoc :metadata metadata)))))))
+             :bodies (mapv dsl->ast bodies)})
+
           ;; (let [,,,] ,,,)
           (= f 'let)
           (let [[bindings & bodies] args]

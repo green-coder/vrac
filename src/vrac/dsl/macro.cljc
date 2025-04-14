@@ -137,9 +137,20 @@
       original-form
       `(~'for ~new-bindings ~body))))
 
+(defn expand-fn-bindings [[_ fn-name params bodies :as original-form]]
+  ;; TODO: add support for the params destructuring
+  original-form)
+
+(defn expand-defn-bindings [[_ fn-name params bodies :as original-form]]
+  ;; TODO: add support for the params destructuring
+  original-form)
+
+
 (def default-macros
   {'->   thread-first
    '->>  thread-last
    'as-> thread-as
    'let  expand-let-bindings
-   'for  expand-for-bindings})
+   'for  expand-for-bindings
+   'fn   expand-fn-bindings
+   'defn expand-defn-bindings})

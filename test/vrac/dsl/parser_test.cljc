@@ -103,7 +103,22 @@
              (let [a 1
                    b 2]
                (dsl/effect-on [a (even? b)]
-                 (prn (+ a b)))))))))
+                 (prn (+ a b))))))))
+
+  (testing "defn"
+    (let [expanded-dsl (sut/expand-dsl
+                         (defn foo [a ^bar b]
+                           a))]
+      (is (= '(defn foo [a b]
+                a)
+             expanded-dsl))
+      (testing "the metadata is preserved"
+        (is (= {:tag 'bar}
+               (-> expanded-dsl
+                   (nth 2)
+                   (nth 1)
+                   meta)))))))
+
 
 (deftest dsl->ast-test
   (are [expected-ast dsl]
@@ -285,4 +300,20 @@
                                            {:node-type :clj/var
                                             :symbol    'b}]}]}]}
     '(vrac.dsl/effect-on [a (clojure.core/even? b)]
-       (clojure.core/prn (clojure.core/+ a b)))))
+       (clojure.core/prn (clojure.core/+ a b)))
+
+    {:node-type :clj/defn
+     :fn-name 'foo
+     :params [{:node-type :clj/fn-param
+               :symbol 'a}
+              {:node-type :clj/fn-param
+               :metadata {:tag 'bar}
+               :symbol 'b}]
+     :bodies [{:node-type :clj/var
+               :symbol 'a}
+              {:node-type :clj/var
+               :symbol 'b}]}
+
+    '(defn foo [a ^bar b]
+       a
+       b)))

@@ -1,7 +1,7 @@
 (ns vrac.dsl)
 
 ;; Keywords used in Vrac's DSL which are already defined in clojure.core/cljs.core:
-;; let, when, for
+;; defn, let, when, for
 
 (def reserved-symbols '[$
                         do if quote ;; <- keywords of the Clojure languages, not defined in clojure.core

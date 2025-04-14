@@ -4,7 +4,12 @@
 
 ;; node-type -> child-node -> #{:one :many}
 (def node-type->walkable-children
-  {:clj/let           [[:bindings :many]
+  {:clj/fn            [[:params :many]
+                       [:bodies :many]]
+   :clj/defn          [[:params :many]
+                       [:bodies :many]]
+   :clj/fn-param      {}
+   :clj/let           [[:bindings :many]
                        [:bodies   :many]]
    :clj/let-binding   {:value :one}
    :clj/do            {:bodies :many}
@@ -85,44 +90,44 @@
 ;; -----------------------------------
 
 (defn- link-vars-pre-walk
-  "On each var node, assoc `:var.value/path` to point where its value is defined.
+  "On each var node, assoc `:var.definition/path` to point where its value is defined.
    Assoc :var/unbound true instead if the var is unbound."
-  [{:keys [root-ast path symbol->value-path] :as context}]
+  [{:keys [root-ast path symbol->definition-path] :as context}]
   (let [ast (get-in root-ast path)]
     (case (:node-type ast)
       :clj/var
       (let [symbol (:symbol ast)
-            value-path (symbol->value-path symbol)]
+            definition-path (symbol->definition-path symbol)]
         (-> context
             (assoc-in (cons :root-ast path)
                       (-> ast
-                          (mc/if-> (nil? value-path)
+                          (mc/if-> (nil? definition-path)
                             (assoc :var/unbound true)
-                            (assoc :var.value/path value-path))))))
+                            (assoc :var.definition/path definition-path))))))
 
       ;; else
       context)))
 
-(defn- symbol->value-path-post-walk
-  "Updates an hashmap symbol->value-path as we walk the AST, to keep track of
+(defn- link-vars-post-walk
+  "Updates a hashmap symbol->value-path as we walk the AST, to keep track of
    what vars are in the current scope and where they are defined."
   [{:keys [root-ast path original-context] :as context}]
   (let [ast (get-in root-ast path)]
     (case (:node-type ast)
       ;; Add a var to the hashmap when we exit a let-binding, as it becomes available
       ;; in the next let-binding entries and the let's bodies.
-      (:clj/let-binding :clj/for-iteration)
+      (:clj/fn-param :clj/let-binding :clj/for-iteration)
       (let [symbol (:symbol ast)]
         (-> context
-            ;; Curate symbol->value-path's content
-            (update :symbol->value-path
-                    assoc symbol (conj path :value))))
+            ;; Curate symbol->definition-path's content
+            (update :symbol->definition-path
+                    assoc symbol path)))
 
       ;; Restore the hashmap when we exit the body/ies of its parent let or for node.
       (:clj/let :clj/for)
       (-> context
-          ;; Pop symbol->value-path back to its original state
-          (assoc :symbol->value-path (:symbol->value-path original-context)))
+          ;; Pop symbol->definition-path back to its original state
+          (assoc :symbol->definition-path (:symbol->definition-path original-context)))
 
       ;; else
       context)))
@@ -131,9 +136,9 @@
   "An AST pass which links the vars to their definition via `:var.value/path`."
   [context]
   (-> context
-      (assoc :symbol->value-path {}) ;; pass setup
-      (walk-ast link-vars-pre-walk symbol->value-path-post-walk)
-      (dissoc :symbol->value-path))) ;; pass clean up
+      (assoc :symbol->definition-path {}) ;; pass setup
+      (walk-ast link-vars-pre-walk link-vars-post-walk)
+      (dissoc :symbol->definition-path))) ;; pass clean up
 
 ;; -----------------------------------
 
@@ -144,10 +149,10 @@
   (let [ast (get-in root-ast path)]
     (case (:node-type ast)
       :clj/var
-      (let [value-path (:var.value/path ast)]
+      (let [definition-path (:var.definition/path ast)]
         (-> context
-            (cond-> (some? value-path)
-                    (update-in [:value-path->usage-paths value-path] (fnil conj []) path))))
+            (cond-> (some? definition-path)
+                    (update-in [:definition-path->usage-paths definition-path] (fnil conj []) path))))
 
       ;; else
       context)))
@@ -155,14 +160,14 @@
 (defn- find-bound-value-usages-pass-clean-up
   "From the hashmap, write down in the AST the usages of each bound value."
   [{:keys [root-ast] :as context}]
-  (let [value-path->usage-paths (:value-path->usage-paths context)]
+  (let [definition-path->usage-paths (:definition-path->usage-paths context)]
     (-> context
         (assoc :root-ast (reduce (fn [root-ast [value-path usage-paths]]
                                    (-> root-ast
                                        (assoc-in (conj value-path :var.usage/paths) usage-paths)))
                                  root-ast
-                                 value-path->usage-paths))
-        (dissoc :value-path->usage-paths))))
+                                 definition-path->usage-paths))
+        (dissoc :definition-path->usage-paths))))
 
 ;; This pass works after `link-vars-to-their-definition-pass`
 (defn add-var-usage-pass
@@ -185,6 +190,15 @@
                 (assoc :node.lifespan/path lifespan-path))
         ;;
         ast (case (:node-type ast)
+              :clj/defn
+              (-> ast
+                  ;; Sets a lifespan on all the body nodes
+                  (update :bodies (fn [bodies]
+                                    (->> bodies
+                                         (mapv (fn [body]
+                                                 (-> body
+                                                     (assoc :node.lifespan/path (conj path :bodies)))))))))
+
               :clj/if
               (-> ast
                   ;; Sets a lifespan on the :then and :else nodes
@@ -271,11 +285,12 @@
                   (assoc :reactivity/type :value))
 
               :clj/var
-              (let [{:keys [var.value/path var/unbound]} ast
-                    bound-value (get-in root-ast path)]
+              (let [{:keys [var.definition/path var/unbound]} ast
+                    definition (get-in root-ast path)]
                 (-> ast
-                    (cond-> (not unbound)
-                            (assoc :reactivity/type (:reactivity/type bound-value)))))
+                    (cond-> (and (not unbound)
+                                 (contains? definition :reactivity/type))
+                            (assoc :reactivity/type (:reactivity/type definition)))))
 
               :clj/invocation
               (let [ast-node-reactivity-type (comp-reactivities (into #{} (map :reactivity/type) (:args ast)))]
@@ -307,8 +322,30 @@
                     (cond-> (some? ast-node-reactivity-type)
                             (assoc :reactivity/type ast-node-reactivity-type))))
 
+              :clj/let-binding
+              (let [ast-node-reactivity-type (-> ast :value :reactivity/type)]
+                (-> ast
+                    (cond-> (some? ast-node-reactivity-type)
+                            (assoc :reactivity/type ast-node-reactivity-type))))
+
               :clj/for
               (let [ast-node-reactivity-type (-> ast :body :reactivity/type)]
+                (-> ast
+                    (cond-> (some? ast-node-reactivity-type)
+                            (assoc :reactivity/type ast-node-reactivity-type))))
+
+
+              :clj/for-iteration
+              (let [ast-node-reactivity-type (-> ast :value :reactivity/type)]
+                (-> ast
+                    (cond-> (some? ast-node-reactivity-type)
+                            (assoc :reactivity/type ast-node-reactivity-type))))
+
+              :clj/fn-param
+              (let [ast-node-reactivity-type (-> ast :metadata :tag
+                                                 {'value  :value
+                                                  'signal :signal
+                                                  'memo   :memo})]
                 (-> ast
                     (cond-> (some? ast-node-reactivity-type)
                             (assoc :reactivity/type ast-node-reactivity-type))))
