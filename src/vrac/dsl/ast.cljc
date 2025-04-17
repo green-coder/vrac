@@ -89,6 +89,17 @@
 
 ;; -----------------------------------
 
+(defn- assoc-from [m-to m-from k]
+  (-> m-to
+      (assoc k (get m-from k))))
+
+(defn- assoc-existing-from [m-to m-from k]
+  (cond-> m-to
+    (contains? m-from k)
+    (assoc k (get m-from k))))
+
+;; -----------------------------------
+
 (defn- link-vars-pre-walk
   "On each var node, assoc `:var.definition/path` to point where its value is defined.
    Assoc :var/unbound true instead if the var is unbound."
@@ -127,7 +138,7 @@
       (:clj/let :clj/for)
       (-> context
           ;; Pop symbol->definition-path back to its original state
-          (assoc :symbol->definition-path (:symbol->definition-path original-context)))
+          (assoc-from original-context :symbol->definition-path))
 
       ;; else
       context)))
@@ -157,7 +168,7 @@
       ;; else
       context)))
 
-(defn- find-bound-value-usages-pass-clean-up
+(defn- find-bound-value-usages-clean-up
   "From the hashmap, write down in the AST the usages of each bound value."
   [{:keys [root-ast] :as context}]
   (let [definition-path->usage-paths (:definition-path->usage-paths context)]
@@ -176,7 +187,7 @@
   [context]
   (-> context
       (walk-ast find-bound-value-usages-pre-walk identity)
-      find-bound-value-usages-pass-clean-up))
+      find-bound-value-usages-clean-up))
 
 ;; -----------------------------------
 
@@ -360,6 +371,30 @@
   [context]
   (-> context
       (walk-ast add-reactivity-type-pre-walk add-reactivity-type-post-walk)))
+
+;; -----------------------------------
+
+;; This is a template for creating a new pass.
+;; Copy/paste, rename those functions, then implement
+
+(defn- xxx-pre-walk [context]
+  context)
+
+(defn- xxx-post-walk [{:keys [root-ast path] :as context}]
+  (let [ast (get-in root-ast path)
+        ast (case (:node-type ast)
+              #_#_
+              :clj/value ast
+
+              ;; else
+              ast)]
+    (-> context
+        (assoc-in (cons :root-ast path) ast))))
+
+(defn xxx-pass
+  [context]
+  (-> context
+      (walk-ast xxx-pre-walk xxx-post-walk)))
 
 ;; -----------------------------------
 
