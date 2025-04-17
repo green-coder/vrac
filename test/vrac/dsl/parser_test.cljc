@@ -119,7 +119,6 @@
                    (nth 1)
                    meta)))))))
 
-
 (deftest dsl->ast-test
   (are [expected-ast dsl]
     (= expected-ast (sut/dsl->ast dsl))
@@ -314,3 +313,81 @@
 
     '(defn foo [a ^bar b]
        a)))
+
+(deftest ast->dsl-test
+  (are [expected-dsl dsl]
+    (= expected-dsl (-> dsl sut/dsl->ast sut/ast->dsl))
+
+    '(fn [a b] a)
+    '(fn [a b] a)
+
+    '(fn foo [a b] a)
+    '(fn foo [a b] a)
+
+    '(defn foo [a b] a)
+    '(defn foo [a b] a)
+
+    '(let [a 1, b 2] a)
+    '(let [a 1, b 2] a)
+
+    '(do 1 2)
+    '(do 1 2)
+
+    '(if true 1 2)
+    '(if true 1 2)
+
+    '(when true 1)
+    '(if true 1)
+
+    '(when true 1)
+    '(when true 1)
+
+    '(for [x [1 2]
+           :let [a 3, b 4]
+           :when (clojure.core/even? a)
+           :while (clojure.core/< a 10)]
+       a)
+    '(for [x [1 2]
+           :let [a 3, b 4]
+           :when (clojure.core/even? a)
+           :while (clojure.core/< a 10)]
+       a)
+
+    '(clojure.core/+ 1 2)
+    '(clojure.core/+ 1 2)
+
+    '#{1 2}
+    '#{1 2}
+
+    '[1 2]
+    '[1 2]
+
+    '{:a 1, :b 2}
+    '{:a 1, :b 2}
+
+    `dsl/global
+    `dsl/global
+
+    `dsl/context
+    `dsl/context
+
+    ;;`(dsl/with-context {:a 1})
+    ;;`(dsl/with-context {:a 1})
+
+    `(dsl/once 1)
+    `(dsl/once 1)
+
+    `(dsl/signal 1)
+    `(dsl/signal 1)
+
+    `(dsl/state 1)
+    `(dsl/state 1)
+
+    `(dsl/memo (clojure.core/+ ~'a 1))
+    `(dsl/memo (clojure.core/+ ~'a 1))
+
+    `(dsl/effect (clojure.core/prn 1))
+    `(dsl/effect (clojure.core/prn 1))
+
+    `(dsl/effect-on ~'[a] 1)
+    `(dsl/effect-on ~'[a] 1)))

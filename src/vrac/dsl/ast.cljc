@@ -21,9 +21,9 @@
    :clj/for           [[:bindings :many]
                        [:body     :one]]
    :clj/for-iteration {:value :one}
+   :clj/for-let       {:bindings :many}
    :clj/for-when      {:cond :one}
    :clj/for-while     {:cond :one}
-   :clj/for-let       {:bindings :many}
    :clj/invocation    {:function :one
                        :args     :many}
    :clj/var           {}

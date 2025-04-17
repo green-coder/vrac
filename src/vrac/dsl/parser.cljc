@@ -171,11 +171,16 @@
 
           ;; (if cond then ?else)
           (= f 'if)
-          (let [[cond then else] args]
-            {:node-type :clj/if
-             :cond (dsl->ast cond)
-             :then (dsl->ast then)
-             :else (dsl->ast else)})
+          (case (count args)
+            2 (let [[cond then] args]
+                {:node-type :clj/when
+                 :cond (dsl->ast cond)
+                 :body (dsl->ast then)})
+            3 (let [[cond then else] args]
+                {:node-type :clj/if
+                 :cond (dsl->ast cond)
+                 :then (dsl->ast then)
+                 :else (dsl->ast else)}))
 
           ;; (quote x)
           (= f 'quote)
@@ -292,3 +297,104 @@
     :else
     {:node-type :clj/value
      :value x}))
+
+;; This is potentially useful for making the tests more humane.
+(defn ast->dsl [x]
+  (case (:node-type x)
+    :clj/fn
+    `(~'fn ~@(when-some [fn-name (:fn-name x)] [fn-name])
+       ~(mapv ast->dsl (:params x))
+       ~(ast->dsl (:body x)))
+
+    :clj/defn
+    `(~'defn ~(:fn-name x)
+       ~(mapv ast->dsl (:params x))
+       ~(ast->dsl (:body x)))
+
+    :clj/fn-param
+    (:symbol x) ;; TODO: add the metadata
+
+    :clj/let
+    `(~'let ~(into [] (mapcat ast->dsl) (:bindings x))
+       ~(ast->dsl (:body x)))
+
+    :clj/let-binding
+    [(:symbol x) (ast->dsl (:value x))]
+
+    :clj/do
+    `(~'do ~@(mapv ast->dsl (:bodies x)))
+
+    :clj/if
+    `(~'if ~(ast->dsl (:cond x))
+       ~(ast->dsl (:then x))
+       ~(ast->dsl (:else x)))
+
+    :clj/when
+    `(~'when ~(ast->dsl (:cond x))
+       ~(ast->dsl (:body x)))
+
+    :clj/for
+    `(~'for ~(into [] (mapcat ast->dsl) (:bindings x))
+       ~(ast->dsl (:body x)))
+
+    :clj/for-iteration
+    [(:symbol x) (ast->dsl (:value x))]
+
+    :clj/for-let
+    [:let (into [] (mapcat ast->dsl) (:bindings x))]
+
+    :clj/for-when
+    [:when (ast->dsl (:cond x))]
+
+    :clj/for-while
+    [:while (ast->dsl (:cond x))]
+
+    :clj/invocation
+    (list* (ast->dsl (:function x))
+           (map ast->dsl (:args x)))
+
+    :clj/var
+    (:symbol x)
+
+    :clj/value
+    (:value x)
+
+    :clj/set
+    (into #{} (map ast->dsl) (:items x))
+
+    :clj/vector
+    (into [] (map ast->dsl) (:items x))
+
+    :clj/map
+    (into {} (map ast->dsl) (:entries x))
+
+    :clj/map-entry
+    [(ast->dsl (:key x)) (ast->dsl (:value x))]
+
+    :dsl/global
+    `dsl/global
+
+    :dsl/context
+    `dsl/context
+
+    :dsl/with-context
+    :not-implemented-yet
+
+    :dsl/once
+    `(dsl/once ~(ast->dsl (:body x)))
+
+    :dsl/signal
+    `(dsl/signal ~(ast->dsl (:body x)))
+
+    :dsl/state
+    `(dsl/state ~(ast->dsl (:body x)))
+
+    :dsl/memo
+    `(dsl/memo ~(ast->dsl (:body x)))
+
+    :dsl/effect
+    `(dsl/effect ~(ast->dsl (:body x)))
+
+    :dsl/effect-on
+    `(dsl/effect-on ~(mapv ast->dsl (:triggers x))
+                    ~(ast->dsl (:body x)))))
