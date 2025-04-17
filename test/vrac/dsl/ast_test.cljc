@@ -16,35 +16,35 @@
                           context)))
         post-process (fn identity [context] context)]
     (is (= {:path     []
-            :root-ast {:bindings  [{:node-type :clj/let-binding
+            :root-ast {:node-type :clj/let
+                       :bindings  [{:node-type :clj/let-binding
                                     :symbol    'a
                                     :value     {:node-type :clj/value
                                                 :value     0}}]
-                       :bodies    [{:node-type :clj/invocation
-                                    :function  {:node-type :clj/var
-                                                :symbol    'clojure.core/vec
-                                                :tagged    true}
-                                    :args      [{:node-type :clj/for
-                                                 :bindings  [{:node-type :clj/for-iteration
-                                                              :symbol    'x
-                                                              :value     {:items     [{:node-type :clj/value
-                                                                                       :value     1}
-                                                                                      {:node-type :clj/value
-                                                                                       :value     2}
-                                                                                      {:node-type :clj/value
-                                                                                       :value     3}]
-                                                                          :node-type :clj/vector}}]
-                                                 :body      {:node-type :clj/invocation
-                                                             :function  {:node-type :clj/var
-                                                                         :symbol    'clojure.core/str
+                       :body      {:node-type :clj/invocation
+                                   :function  {:node-type :clj/var
+                                               :symbol    'clojure.core/vec
+                                               :tagged    true}
+                                   :args      [{:node-type :clj/for
+                                                :bindings  [{:node-type :clj/for-iteration
+                                                             :symbol    'x
+                                                             :value     {:items     [{:node-type :clj/value
+                                                                                      :value     1}
+                                                                                     {:node-type :clj/value
+                                                                                      :value     2}
+                                                                                     {:node-type :clj/value
+                                                                                      :value     3}]
+                                                                         :node-type :clj/vector}}]
+                                                :body      {:node-type :clj/invocation
+                                                            :function  {:node-type :clj/var
+                                                                        :symbol    'clojure.core/str
+                                                                        :tagged    true}
+                                                            :args      [{:node-type :clj/var
+                                                                         :symbol    'a
                                                                          :tagged    true}
-                                                             :args      [{:node-type :clj/var
-                                                                          :symbol    'a
-                                                                          :tagged    true}
-                                                                         {:node-type :clj/var
-                                                                          :symbol    'x
-                                                                          :tagged    true}]}}]}]
-                       :node-type :clj/let}}
+                                                                        {:node-type :clj/var
+                                                                         :symbol    'x
+                                                                         :tagged    true}]}}]}}}
            (-> (expand-dsl (let [a 0]
                              (-> (for [x [1 2 3]]
                                    (str a x))
@@ -64,21 +64,22 @@
                          :symbol    'b
                          :value     {:node-type :clj/value
                                      :value     2}}]
-            :bodies    [{:node-type :clj/vector
-                         :items     [{:node-type      :clj/var
-                                      :symbol         'a
-                                      :var.definition/path [:bindings 0]}]}
-                        {:node-type :clj/map
-                         :entries   [{:node-type :clj/map-entry
-                                      :key {:node-type      :clj/var
-                                            :symbol         'a
-                                            :var.definition/path [:bindings 0]}
-                                      :value {:node-type      :clj/var
-                                              :symbol         'b
-                                              :var.definition/path [:bindings 1]}}]}
-                        {:node-type      :clj/var
-                         :symbol         'a
-                         :var.definition/path [:bindings 0]}]}
+            :body      {:node-type :clj/do
+                        :bodies [{:node-type :clj/vector
+                                  :items     [{:node-type      :clj/var
+                                               :symbol         'a
+                                               :var.definition/path [:bindings 0]}]}
+                                 {:node-type :clj/map
+                                  :entries   [{:node-type :clj/map-entry
+                                               :key {:node-type      :clj/var
+                                                     :symbol         'a
+                                                     :var.definition/path [:bindings 0]}
+                                               :value {:node-type      :clj/var
+                                                       :symbol         'b
+                                                       :var.definition/path [:bindings 1]}}]}
+                                 {:node-type      :clj/var
+                                  :symbol         'a
+                                  :var.definition/path [:bindings 0]}]}}
            (-> (expand-dsl (let [a 1
                                  b 2]
                              [a]
@@ -134,12 +135,13 @@
                      {:node-type :clj/fn-param
                       :symbol 'b
                       :metadata {:tag 'bar}}]
-            :bodies [{:node-type :clj/var
-                      :symbol 'a
-                      :var.definition/path [:params 0]}
-                     {:node-type :clj/var
-                      :symbol 'b
-                      :var.definition/path [:params 1]}]}
+            :body {:node-type :clj/do
+                   :bodies [{:node-type :clj/var
+                             :symbol 'a
+                             :var.definition/path [:params 0]}
+                            {:node-type :clj/var
+                             :symbol 'b
+                             :var.definition/path [:params 1]}]}}
            (-> (expand-dsl (defn foo [a ^bar b]
                              a
                              b))
@@ -164,18 +166,18 @@
                               :args [{:node-type :clj/var
                                       :symbol 'a
                                       :var.definition/path [:bindings 0]}]}
-                      :var.usage/paths [[:bodies 0 :args 0]
-                                        [:bodies 0 :args 1]]}]
-          :bodies [{:node-type :clj/invocation
-                    :function {:node-type   :clj/var
-                               :symbol      'clojure.core/+
-                               :var/unbound true}
-                    :args [{:node-type :clj/var
-                            :symbol 'a
-                            :var.definition/path [:bindings 1]}
-                           {:node-type :clj/var
-                            :symbol 'a
-                            :var.definition/path [:bindings 1]}]}]}
+                      :var.usage/paths [[:body :args 0]
+                                        [:body :args 1]]}]
+          :body {:node-type :clj/invocation
+                 :function {:node-type   :clj/var
+                            :symbol      'clojure.core/+
+                            :var/unbound true}
+                 :args [{:node-type :clj/var
+                         :symbol 'a
+                         :var.definition/path [:bindings 1]}
+                        {:node-type :clj/var
+                         :symbol 'a
+                         :var.definition/path [:bindings 1]}]}}
          (-> (expand-dsl (let [a 1
                                a (inc a)]
                            (+ a a)))
@@ -194,50 +196,52 @@
                                 :value 1
                                 :node.lifespan/path []}
                         :node.lifespan/path []}]
-            :bodies [{:node-type :clj/let
-                      :bindings [{:node-type :clj/let-binding
-                                  :symbol 'b
-                                  :value {:node-type :clj/value
-                                          :value 2
-                                          :node.lifespan/path []}
-                                  :node.lifespan/path []}]
-                      :bodies []
-                      :node.lifespan/path []}
-                     {:node-type :clj/do
-                      :bodies [{:node-type :clj/var
-                                :symbol 'a
-                                :node.lifespan/path []}]
-                      :node.lifespan/path []}
-                     {:node-type :clj/map
-                      :entries [{:node-type :clj/map-entry
-                                 :key {:node-type :clj/var
-                                       :symbol 'a
-                                       :node.lifespan/path []}
-                                 :value {:node-type :clj/var
-                                         :symbol 'a
-                                         :node.lifespan/path []}
-                                 :node.lifespan/path []}]
-                      :node.lifespan/path []}
-                     {:node-type :clj/vector
-                      :items [{:node-type :clj/var
-                               :symbol 'a
-                               :node.lifespan/path []}]
-                      :node.lifespan/path []}
-                     {:node-type :clj/invocation
-                      :function {:node-type :clj/var
-                                 :symbol 'clojure.core/inc
-                                 :node.lifespan/path []}
-                      :args [{:node-type :clj/var
-                              :symbol 'a
-                              :node.lifespan/path []}]
-                      :node.lifespan/path []}
-                     {:node-type :clj/var
-                      :symbol 'a
-                      :node.lifespan/path []}]
+            :body {:node-type :clj/do
+                   :bodies [{:node-type :clj/let
+                             :bindings [{:node-type :clj/let-binding
+                                         :symbol 'b
+                                         :value {:node-type :clj/value
+                                                 :value 2
+                                                 :node.lifespan/path []}
+                                         :node.lifespan/path []}]
+                             :body {:node-type :clj/value
+                                    :value nil
+                                    :node.lifespan/path []}
+                             :node.lifespan/path []}
+                            {:node-type :clj/var
+                             :symbol 'a
+                             :node.lifespan/path []}
+                            {:node-type :clj/map
+                             :entries [{:node-type :clj/map-entry
+                                        :key {:node-type :clj/var
+                                              :symbol 'a
+                                              :node.lifespan/path []}
+                                        :value {:node-type :clj/var
+                                                :symbol 'a
+                                                :node.lifespan/path []}
+                                        :node.lifespan/path []}]
+                             :node.lifespan/path []}
+                            {:node-type :clj/vector
+                             :items [{:node-type :clj/var
+                                      :symbol 'a
+                                      :node.lifespan/path []}]
+                             :node.lifespan/path []}
+                            {:node-type :clj/invocation
+                             :function {:node-type :clj/var
+                                        :symbol 'clojure.core/inc
+                                        :node.lifespan/path []}
+                             :args [{:node-type :clj/var
+                                     :symbol 'a
+                                     :node.lifespan/path []}]
+                             :node.lifespan/path []}
+                            {:node-type :clj/var
+                             :symbol 'a
+                             :node.lifespan/path []}]
+                   :node.lifespan/path []}
             :node.lifespan/path []}
            (-> (expand-dsl (let [a 1]
                              (let [b 2])
-                             (do a)
+                             a
                              {a a}
                              [a]
                              (inc a)
@@ -280,9 +284,9 @@
             :cond {:node-type :clj/value
                    :value true
                    :node.lifespan/path []}
-            :bodies [{:node-type :clj/value
-                      :value 1
-                      :node.lifespan/path [:bodies]}]
+            :body {:node-type :clj/value
+                   :value 1
+                   :node.lifespan/path [:body]}
             :node.lifespan/path []}
            (-> (expand-dsl (when true
                              1))
@@ -389,17 +393,17 @@
                                        :node.lifespan/path []}
                                 :node.lifespan/path []}
                         :node.lifespan/path []}]
-            :bodies [{:node-type :dsl/effect
-                      ;; Should we parse the content of the effect, or treat it as a CLJC escape hatch?
-                      :bodies [{:node-type :clj/invocation
-                                :function {:node-type :clj/var
-                                           :symbol 'clojure.core/prn
-                                           :node.lifespan/path []}
-                                :args [{:node-type :clj/var
-                                        :symbol 'a
-                                        :node.lifespan/path []}]
-                                :node.lifespan/path []}]
-                      :node.lifespan/path []}]
+            :body {:node-type :dsl/effect
+                   ;; Should we parse the content of the effect, or treat it as a CLJC escape hatch?
+                   :body {:node-type :clj/invocation
+                          :function {:node-type :clj/var
+                                     :symbol 'clojure.core/prn
+                                     :node.lifespan/path []}
+                          :args [{:node-type :clj/var
+                                  :symbol 'a
+                                  :node.lifespan/path []}]
+                          :node.lifespan/path []}
+                   :node.lifespan/path []}
             :node.lifespan/path []}
            (-> (expand-dsl (let [a (dsl/signal 1)]
                              (dsl/effect
@@ -419,20 +423,20 @@
                                        :node.lifespan/path []}
                                 :node.lifespan/path []}
                         :node.lifespan/path []}]
-            :bodies [{:node-type :dsl/effect-on
-                      :triggers [{:node-type :clj/var
+            :body {:node-type :dsl/effect-on
+                   :triggers [{:node-type :clj/var
+                               :symbol 'a
+                               :node.lifespan/path []}]
+                   ;; Should we parse the content of the effect, or treat it as a CLJC escape hatch?
+                   :body {:node-type :clj/invocation
+                          :function {:node-type :clj/var
+                                     :symbol 'clojure.core/prn
+                                     :node.lifespan/path []}
+                          :args [{:node-type :clj/var
                                   :symbol 'a
                                   :node.lifespan/path []}]
-                      ;; Should we parse the content of the effect, or treat it as a CLJC escape hatch?
-                      :bodies [{:node-type :clj/invocation
-                                :function {:node-type :clj/var
-                                           :symbol 'clojure.core/prn
-                                           :node.lifespan/path []}
-                                :args [{:node-type :clj/var
-                                        :symbol 'a
-                                        :node.lifespan/path []}]
-                                :node.lifespan/path []}]
-                      :node.lifespan/path []}]
+                          :node.lifespan/path []}
+                   :node.lifespan/path []}
             :node.lifespan/path []}
            (-> (expand-dsl (let [a (dsl/signal 1)]
                              (dsl/effect-on [a]
@@ -450,22 +454,24 @@
                                 :value 1
                                 :node.lifespan/path []}
                         :node.lifespan/path []}]
-            :bodies [{:node-type :clj/defn
-                      :fn-name 'foo
-                      :params [{:node-type :clj/fn-param
-                                :symbol 'a
-                                :node.lifespan/path []}
-                               {:node-type :clj/fn-param
-                                :symbol 'b
-                                :metadata {:tag 'bar}
-                                :node.lifespan/path []}]
-                      :bodies [{:node-type :clj/var
-                                :symbol 'a
-                                :node.lifespan/path [:bodies 0 :bodies]}
-                               {:node-type :clj/var
-                                :symbol 'b
-                                :node.lifespan/path [:bodies 0 :bodies]}]
-                      :node.lifespan/path []}]
+            :body {:node-type :clj/defn
+                   :fn-name 'foo
+                   :params [{:node-type :clj/fn-param
+                             :symbol 'a
+                             :node.lifespan/path []}
+                            {:node-type :clj/fn-param
+                             :symbol 'b
+                             :metadata {:tag 'bar}
+                             :node.lifespan/path []}]
+                   :body {:node-type :clj/do
+                          :bodies [{:node-type :clj/var
+                                    :symbol 'a
+                                    :node.lifespan/path [:body :body]}
+                                   {:node-type :clj/var
+                                    :symbol 'b
+                                    :node.lifespan/path [:body :body]}]
+                          :node.lifespan/path [:body :body]}
+                   :node.lifespan/path []}
             :node.lifespan/path []}
            (-> (expand-dsl (let [x 1]
                              (defn foo [a ^bar b]
@@ -736,10 +742,10 @@
                                        :reactivity/type :value}
                                 :reactivity/type :signal}
                         :reactivity/type :signal}]
-            :bodies [{:node-type :clj/var
-                      :symbol 's
-                      :var.definition/path [:bindings 0]
-                      :reactivity/type :signal}]
+            :body {:node-type :clj/var
+                   :symbol 's
+                   :var.definition/path [:bindings 0]
+                   :reactivity/type :signal}
             :reactivity/type :signal}
            (-> (expand-dsl (let [s (dsl/signal 1)]
                              s))
@@ -819,21 +825,22 @@
                       :symbol 'd
                       :metadata {:tag 'memo}
                       :reactivity/type :memo}]
-            :bodies [{:node-type :clj/var
-                      :symbol 'a
-                      :var.definition/path [:params 0]}
-                     {:node-type :clj/var
-                      :symbol 'b
-                      :var.definition/path [:params 1]
-                      :reactivity/type :value}
-                     {:node-type :clj/var
-                      :symbol 'c
-                      :var.definition/path [:params 2]
-                      :reactivity/type :signal}
-                     {:node-type :clj/var
-                      :symbol 'd
-                      :var.definition/path [:params 3]
-                      :reactivity/type :memo}]}
+            :body {:node-type :clj/do
+                   :bodies [{:node-type :clj/var
+                             :symbol 'a
+                             :var.definition/path [:params 0]}
+                            {:node-type :clj/var
+                             :symbol 'b
+                             :var.definition/path [:params 1]
+                             :reactivity/type :value}
+                            {:node-type :clj/var
+                             :symbol 'c
+                             :var.definition/path [:params 2]
+                             :reactivity/type :signal}
+                            {:node-type :clj/var
+                             :symbol 'd
+                             :var.definition/path [:params 3]
+                             :reactivity/type :memo}]}}
            (-> (expand-dsl (defn foo [a ^value b ^signal c ^memo d]
                              a b c d))
                parser/dsl->ast

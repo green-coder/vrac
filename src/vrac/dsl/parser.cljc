@@ -55,21 +55,21 @@
                                        (cond
                                          ;; (defn ,,, [,,,] ,,,)
                                          (= f 'defn)
-                                         (let [[fn-name params & bodies] args
+                                         (let [[fn-name params body] args
                                                local-vars (into local-vars params)
-                                               bodies (map (mc/partial-> resolve-and-expand local-vars) bodies)]
-                                           `(~'defn ~fn-name ~params ~@bodies))
+                                               body (resolve-and-expand body local-vars)]
+                                           `(~'defn ~fn-name ~params ~body))
 
                                          ;; (let [,,,] ,,,)
                                          (= f 'let)
-                                         (let [[bindings & bodies] args
+                                         (let [[bindings body] args
                                                [bindings local-vars] (reduce (fn [[bindings local-vars] [symbol-form value-form]]
                                                                                [(conj bindings symbol-form (resolve-and-expand value-form local-vars))
                                                                                 (conj local-vars symbol-form)])
                                                                              [[] local-vars]
                                                                              (partition 2 bindings))
-                                               bodies (map (mc/partial-> resolve-and-expand local-vars) bodies)]
-                                           `(~'let ~bindings ~@bodies))
+                                               body (resolve-and-expand body local-vars)]
+                                           `(~'let ~bindings ~body))
 
                                          ;; (for [,,,] ,,,)
                                          (= f 'for)
@@ -96,7 +96,7 @@
                                          (= f 'quote)
                                          x ; "You can't touch this"
 
-                                         ;; (f a b c)
+                                         ;; generic (f a b c)
                                          :else
                                          `(~expanded-f ~@(map (mc/partial-> resolve-and-expand local-vars) args)))))))
 
@@ -138,9 +138,9 @@
        :value ()}
       (let [[f & args] x]
         (cond
-          ;; (defn fn-name params & bodies)
+          ;; (defn fn-name params body)
           (= f 'defn)
-          (let [[fn-name params & bodies] args]
+          (let [[fn-name params body] args]
             {:node-type :clj/defn
              :fn-name fn-name
              :params (->> params
@@ -149,11 +149,11 @@
                                     (-> {:node-type :clj/fn-param
                                          :symbol symbol}
                                         (cond-> (seq metadata) (assoc :metadata metadata)))))))
-             :bodies (mapv dsl->ast bodies)})
+             :body (dsl->ast body)})
 
           ;; (let [,,,] ,,,)
           (= f 'let)
-          (let [[bindings & bodies] args]
+          (let [[bindings body] args]
             {:node-type :clj/let
              :bindings (->> bindings
                             (partition 2)
@@ -161,7 +161,7 @@
                                     {:node-type :clj/let-binding
                                      :symbol symbol
                                      :value (dsl->ast value)})))
-             :bodies (mapv dsl->ast bodies)})
+             :body (dsl->ast body)})
 
           ;; (do ,,,)
           (= f 'do)
@@ -182,19 +182,19 @@
           {:node-type :clj/value
            :value x}
 
-          ;; (when cond & bodies)
+          ;; (when cond body)
           (= f 'when)
-          (let [[cond & bodies] args]
+          (let [[cond body] args]
             {:node-type :clj/when
              :cond (dsl->ast cond)
-             :bodies (mapv dsl->ast bodies)})
+             :body (dsl->ast body)})
 
           ;; (with-context ,,,)
           (= f `dsl/with-context)
-          (let [[context & bodies] args]
+          (let [[context body] args]
             {:node-type :dsl/with-context
              :context (dsl->ast context)
-             :bodies (mapv dsl->ast bodies)})
+             :body (dsl->ast body)})
 
           ;; (for [,,,] ,,,)
           (= f 'for)
@@ -246,17 +246,17 @@
 
           ;; effect
           (= f `dsl/effect)
-          (let [bodies args]
+          (let [[body] args]
             {:node-type :dsl/effect
-             :bodies (mapv dsl->ast bodies)})
+             :body (dsl->ast body)})
 
           ;; effect-on
           (= f `dsl/effect-on)
-          (let [[triggers & bodies] args]
+          (let [[triggers body] args]
             (assert (vector? triggers) "The triggers should be a vector literal.")
             {:node-type :dsl/effect-on
              :triggers (mapv dsl->ast triggers)
-             :bodies (mapv dsl->ast bodies)})
+             :body (dsl->ast body)})
 
           :else
           {:node-type :clj/invocation

@@ -137,26 +137,26 @@
                   :symbol    'a
                   :value     {:node-type :clj/value
                               :value     1}}]
-     :bodies    [{:node-type :clj/var
-                  :symbol    'a}]}
+     :body      {:node-type :clj/var
+                 :symbol    'a}}
     '(let [a 1]
        a)
 
     {:node-type :clj/let
-     :bindings [{:node-type :clj/let-binding
-                 :symbol 'a
-                 :value {:node-type :clj/value
-                         :value 1}}
-                {:node-type :clj/let-binding
-                 :symbol 'b
-                 :value {:node-type :clj/value
-                         :value ''x}}
-                {:node-type :clj/let-binding
-                 :symbol 'c
-                 :value {:node-type :clj/value
-                         :value '''y}}]
-     :bodies   [{:node-type :clj/value
-                 :value ''d}]}
+     :bindings  [{:node-type :clj/let-binding
+                  :symbol 'a
+                  :value {:node-type :clj/value
+                          :value 1}}
+                 {:node-type :clj/let-binding
+                  :symbol 'b
+                  :value {:node-type :clj/value
+                          :value ''x}}
+                 {:node-type :clj/let-binding
+                  :symbol 'c
+                  :value {:node-type :clj/value
+                          :value '''y}}]
+     :body      {:node-type :clj/value
+                 :value ''d}}
     '(let [a 1
            b 'x
            c ''y]
@@ -224,8 +224,8 @@
     {:node-type :clj/when
      :cond      {:node-type :clj/value
                  :value     true}
-     :bodies    [{:node-type :clj/value
-                  :value     30}]}
+     :body      {:node-type :clj/value
+                 :value     30}}
     '(when true 30)
 
     {:node-type :clj/for
@@ -268,16 +268,16 @@
        10)
 
     {:node-type :dsl/effect
-     :bodies    [{:node-type :clj/invocation
-                  :function  {:node-type :clj/var
-                              :symbol    'clojure.core/prn}
-                  :args      [{:node-type :clj/invocation
-                               :function  {:node-type :clj/var
-                                           :symbol    'clojure.core/+}
-                               :args      [{:node-type :clj/var
-                                            :symbol    'a}
-                                           {:node-type :clj/var
-                                            :symbol    'b}]}]}]}
+     :body      {:node-type :clj/invocation
+                 :function  {:node-type :clj/var
+                             :symbol    'clojure.core/prn}
+                 :args      [{:node-type :clj/invocation
+                              :function  {:node-type :clj/var
+                                          :symbol    'clojure.core/+}
+                              :args      [{:node-type :clj/var
+                                           :symbol    'a}
+                                          {:node-type :clj/var
+                                           :symbol    'b}]}]}}
     '(vrac.dsl/effect
        (clojure.core/prn (clojure.core/+ a b)))
 
@@ -289,16 +289,16 @@
                             :symbol    'clojure.core/even?}
                  :args [{:node-type :clj/var
                          :symbol 'b}]}]
-     :bodies    [{:node-type :clj/invocation
-                  :function  {:node-type :clj/var
-                              :symbol    'clojure.core/prn}
-                  :args      [{:node-type :clj/invocation
-                               :function  {:node-type :clj/var
-                                           :symbol    'clojure.core/+}
-                               :args      [{:node-type :clj/var
-                                            :symbol    'a}
-                                           {:node-type :clj/var
-                                            :symbol    'b}]}]}]}
+     :body     {:node-type :clj/invocation
+                :function  {:node-type :clj/var
+                            :symbol    'clojure.core/prn}
+                :args      [{:node-type :clj/invocation
+                             :function  {:node-type :clj/var
+                                         :symbol    'clojure.core/+}
+                             :args      [{:node-type :clj/var
+                                          :symbol    'a}
+                                         {:node-type :clj/var
+                                          :symbol    'b}]}]}}
     '(vrac.dsl/effect-on [a (clojure.core/even? b)]
        (clojure.core/prn (clojure.core/+ a b)))
 
@@ -309,11 +309,8 @@
               {:node-type :clj/fn-param
                :metadata {:tag 'bar}
                :symbol 'b}]
-     :bodies [{:node-type :clj/var
-               :symbol 'a}
-              {:node-type :clj/var
-               :symbol 'b}]}
+     :body   {:node-type :clj/var
+              :symbol 'a}}
 
     '(defn foo [a ^bar b]
-       a
-       b)))
+       a)))

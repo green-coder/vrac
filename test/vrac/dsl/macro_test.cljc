@@ -105,15 +105,25 @@
                                  :&        rest
                                  :as       x} y])))))
 
-(deftest expand-let-bindings-test
+(deftest expand-let-test
   (testing "let bindings expansion"
     (with-redefs [gensym (make-gensym)]
       (is (= `(~'let [~'map__1 {:a 1}
                       ~'a (:a ~'map__1)]
                 ~'a)
-             (sut/expand-let-bindings `(~'let [~'{a :a} {:a 1}] ~'a)))))))
+             (sut/expand-let `(~'let [~'{a :a} {:a 1}] ~'a)))))
+    (with-redefs [gensym (make-gensym)]
+      (is (= `(~'let [~'a 1
+                      ~'b 2]
+                (~'do
+                  ~'a
+                  ~'b))
+             (sut/expand-let `(~'let [~'a 1
+                                      ~'b 2]
+                                ~'a
+                                ~'b)))))))
 
-(deftest expand-for-bindings-test
+(deftest expand-for-test
   (testing "for bindings expansion"
     (with-redefs [gensym (make-gensym)]
       (is (= `(~'for [~'item__1 [[1 2] [3 4]]
@@ -124,6 +134,23 @@
                             ~'c (nth ~'vec__3 0)
                             ~'d (nth ~'vec__3 1)]]
                 [~'a ~'b ~'c ~'d])
-              (sut/expand-for-bindings `(~'for [~'[a b] ~[[1 2] [3 4]]
-                                                :let [~'[c d] ~'[10 20]]]
-                                          ~'[a b c d])))))))
+              (sut/expand-for `(~'for [~'[a b] ~[[1 2] [3 4]]
+                                       :let [~'[c d] ~'[10 20]]]
+                                 ~'[a b c d])))))))
+
+(deftest expand-when-test
+  (testing "when single body"
+    (is (= '(when true (do 1 2))
+           (sut/expand-when '(when true 1 2))))))
+
+(deftest expand-fn-test
+  (testing "fn single body"
+    (is (= '(fn [a] (do 1 2))
+           (sut/expand-fn '(fn [a] 1 2))))
+    (is (= '(fn foo [a] (do 1 2))
+           (sut/expand-fn '(fn foo [a] 1 2))))))
+
+(deftest expand-defn-test
+  (testing "defn single body"
+    (is (= '(defn foo [a] (do 1 2))
+           (sut/expand-defn '(defn foo [a] 1 2))))))

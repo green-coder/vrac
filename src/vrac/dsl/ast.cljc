@@ -5,19 +5,19 @@
 ;; node-type -> child-node -> #{:one :many}
 (def node-type->walkable-children
   {:clj/fn            [[:params :many]
-                       [:bodies :many]]
+                       [:body :one]]
    :clj/defn          [[:params :many]
-                       [:bodies :many]]
+                       [:body :one]]
    :clj/fn-param      {}
    :clj/let           [[:bindings :many]
-                       [:bodies   :many]]
+                       [:body :one]]
    :clj/let-binding   {:value :one}
    :clj/do            {:bodies :many}
    :clj/if            {:cond :one
                        :then :one
                        :else :one}
-   :clj/when          {:cond   :one
-                       :bodies :many}
+   :clj/when          {:cond :one
+                       :body :one}
    :clj/for           [[:bindings :many]
                        [:body     :one]]
    :clj/for-iteration {:value :one}
@@ -36,14 +36,14 @@
    :dsl/global        {}
    :dsl/context       {}
    :dsl/with-context  {:context :one
-                       :bodies  :many}
+                       :body    :one}
    :dsl/once          {:body :one}
    :dsl/signal        {:body :one}
    :dsl/state         {:body :one}
    :dsl/memo          {:body :one}
-   :dsl/effect        {:bodies :many}
+   :dsl/effect        {:body :one}
    :dsl/effect-on     {:triggers :many
-                       :bodies   :many}})
+                       :body     :one}})
 
 (defn walk-ast
   "Walks and transforms a context containing the AST."
@@ -126,7 +126,7 @@
   (let [ast (get-in root-ast path)]
     (case (:node-type ast)
       ;; Add a var to the hashmap when we exit a let-binding, as it becomes available
-      ;; in the next let-binding entries and the let's bodies.
+      ;; in the next let-binding entries and the let's body.
       (:clj/fn-param :clj/let-binding :clj/for-iteration)
       (let [symbol (:symbol ast)]
         (-> context
@@ -203,12 +203,8 @@
         ast (case (:node-type ast)
               :clj/defn
               (-> ast
-                  ;; Sets a lifespan on all the body nodes
-                  (update :bodies (fn [bodies]
-                                    (->> bodies
-                                         (mapv (fn [body]
-                                                 (-> body
-                                                     (assoc :node.lifespan/path (conj path :bodies)))))))))
+                  ;; Sets a lifespan on all the body node
+                  (assoc-in [:body :node.lifespan/path] (conj path :body)))
 
               :clj/if
               (-> ast
@@ -218,12 +214,8 @@
 
               :clj/when
               (-> ast
-                  ;; Sets a lifespan on all the body nodes
-                  (update :bodies (fn [bodies]
-                                    (->> bodies
-                                         (mapv (fn [body]
-                                                 (-> body
-                                                     (assoc :node.lifespan/path (conj path :bodies)))))))))
+                  ;; Sets a lifespan on all the body node
+                  (assoc-in [:body :node.lifespan/path] (conj path :body)))
 
               :clj/for
               (let [[bindings lifespan-path] (reduce (fn [[bindings lifespan] [index binding]]
@@ -328,7 +320,7 @@
                             (assoc :reactivity/type ast-node-reactivity-type))))
 
               :clj/let
-              (let [ast-node-reactivity-type (-> ast :bodies last :reactivity/type)]
+              (let [ast-node-reactivity-type (-> ast :body :reactivity/type)]
                 (-> ast
                     (cond-> (some? ast-node-reactivity-type)
                             (assoc :reactivity/type ast-node-reactivity-type))))

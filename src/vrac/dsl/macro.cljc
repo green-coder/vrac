@@ -112,14 +112,21 @@
                          [k-form v-form]))]
         (into [] (mapcat destruct) pairs)))))
 
-(defn expand-let-bindings [[_ bindings & bodies :as original-form]]
-  (let [destructured-bindings (destructure bindings)]
-    (if (identical? destructured-bindings bindings)
+(defn expand-let [original-form]
+  (let [[_let bindings & bodies] original-form
+        destructured-bindings (destructure bindings)
+        has-multiple-bodies (> (count bodies) 1)
+        body (if has-multiple-bodies
+               `(~'do ~@bodies)
+               (first bodies))]
+    (if (and (identical? destructured-bindings bindings)
+             (not has-multiple-bodies))
       original-form
-      `(~'let ~destructured-bindings ~@bodies))))
+      `(~'let ~destructured-bindings ~body))))
 
-(defn expand-for-bindings [[_ bindings body :as original-form]]
-  (let [new-bindings (->> (partition 2 bindings)
+(defn expand-for [original-form]
+  (let [[_for bindings body] original-form
+        new-bindings (->> (partition 2 bindings)
                           (mapcat (fn [[k v]]
                                     (case k
                                       :let [:let (destructure v)]
@@ -137,20 +144,46 @@
       original-form
       `(~'for ~new-bindings ~body))))
 
-(defn expand-fn-bindings [[_ fn-name params bodies :as original-form]]
-  ;; TODO: add support for the params destructuring
-  original-form)
+(defn expand-when [original-form]
+  (let [[_when condition & bodies] original-form
+        has-multiple-bodies (> (count bodies) 1)
+        body (if has-multiple-bodies
+               `(~'do ~@bodies)
+               (first bodies))]
+    (if (not has-multiple-bodies)
+      original-form
+      `(~'when ~condition ~body))))
 
-(defn expand-defn-bindings [[_ fn-name params bodies :as original-form]]
-  ;; TODO: add support for the params destructuring
-  original-form)
+(defn expand-fn [original-form]
+  (let [[_fn fn-name params & bodies] (if (symbol? (second original-form)) ; is fn-name defined?
+                                        original-form
+                                        (list* 'fn nil (next original-form)))
+        has-multiple-bodies (> (count bodies) 1)
+        body (if has-multiple-bodies
+               `(~'do ~@bodies)
+               (first bodies))]
+    ;; TODO: add support for the params destructuring
+    (if (not has-multiple-bodies)
+      original-form
+      `(~'fn ~@(when (some? fn-name) [fn-name]) ~params ~body))))
 
+(defn expand-defn [original-form]
+  (let [[_defn fn-name params & bodies] original-form
+        has-multiple-bodies (> (count bodies) 1)
+        body (if has-multiple-bodies
+               `(~'do ~@bodies)
+               (first bodies))]
+    ;; TODO: add support for the params destructuring
+    (if (not has-multiple-bodies)
+      original-form
+      `(~'defn ~fn-name ~params ~body))))
 
 (def default-macros
   {'->   thread-first
    '->>  thread-last
    'as-> thread-as
-   'let  expand-let-bindings
-   'for  expand-for-bindings
-   'fn   expand-fn-bindings
-   'defn expand-defn-bindings})
+   'let  expand-let
+   'for  expand-for
+   'when expand-when
+   'fn   expand-fn
+   'defn expand-defn})
