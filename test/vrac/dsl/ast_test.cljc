@@ -398,11 +398,12 @@
                    :body {:node-type :clj/invocation
                           :function {:node-type :clj/var
                                      :symbol 'clojure.core/prn
-                                     :node.lifespan/path []}
+                                     :node.lifespan/path [:body :body]}
                           :args [{:node-type :clj/var
                                   :symbol 'a
-                                  :node.lifespan/path []}]
-                          :node.lifespan/path []}
+                                  :node.lifespan/path [:body :body]}]
+                          :node.lifespan/path [:body :body]
+                          :node.lifespan/type :non-reactive}
                    :node.lifespan/path []}
             :node.lifespan/path []}
            (-> (expand-dsl (let [a (dsl/signal 1)]
@@ -431,11 +432,12 @@
                    :body {:node-type :clj/invocation
                           :function {:node-type :clj/var
                                      :symbol 'clojure.core/prn
-                                     :node.lifespan/path []}
+                                     :node.lifespan/path [:body :body]}
                           :args [{:node-type :clj/var
                                   :symbol 'a
-                                  :node.lifespan/path []}]
-                          :node.lifespan/path []}
+                                  :node.lifespan/path [:body :body]}]
+                          :node.lifespan/path [:body :body]
+                          :node.lifespan/type :non-reactive}
                    :node.lifespan/path []}
             :node.lifespan/path []}
            (-> (expand-dsl (let [a (dsl/signal 1)]
@@ -848,3 +850,40 @@
                sut/link-vars-to-their-definition-pass
                sut/add-reactivity-type-pass
                :root-ast)))))
+
+#_
+(deftest hoist-invocations-pass-test
+  (is (= {:node-type :clj/let
+          :bindings [{:node-type :clj/let-binding
+                      :symbol 'a
+                      :value {:node-type :clj/value, :value 1}}
+                     {:node-type :clj/let-binding
+                      :symbol 'b
+                      :value {:node-type :clj/invocation
+                              :function {:node-type :clj/var
+                                         :symbol 'clojure.core/vector}
+                              :args [{:node-type :clj/invocation
+                                      :function {:node-type :clj/var
+                                                 :symbol 'clojure.core/+}
+                                      :args [{:node-type :clj/var
+                                              :symbol 'a}
+                                             {:node-type :clj/value
+                                              :value 2}]}
+                                     {:node-type :clj/invocation,
+                                      :function {:node-type :clj/var
+                                                 :symbol 'clojure.core/+}
+                                      :args [{:node-type :clj/var
+                                              :symbol 'a}
+                                             {:node-type :clj/value
+                                              :value 3}]}]}}]
+          :bodies [{:node-type :clj/value
+                    :value 4}]}
+         (-> (expand-dsl (let [a 1
+                               b (vector (+ a 2) (+ a 3))]
+                           4))
+             parser/dsl->ast
+             sut/make-context
+             ;;sut/link-vars-to-their-definition-pass
+             sut/add-lifespan-pass
+             sut/hoist-invocations-pass
+             :root-ast))))

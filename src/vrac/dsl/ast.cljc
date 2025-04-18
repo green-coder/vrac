@@ -232,6 +232,11 @@
                     ;; Sets a lifespan on the :body node
                     (assoc-in [:body :node.lifespan/path] lifespan-path)))
 
+              (:dsl/effect :dsl/effect-on)
+              (-> ast
+                  (assoc-in [:body :node.lifespan/path] (conj path :body))
+                  (assoc-in [:body :node.lifespan/type] :non-reactive))
+
               ;; else
               ast)]
     (-> context
@@ -363,6 +368,24 @@
   [context]
   (-> context
       (walk-ast add-reactivity-type-pre-walk add-reactivity-type-post-walk)))
+
+;; -----------------------------------
+
+(defn- hoist-invocations-pre-walk [{:keys [root-ast path] :as context}]
+  context)
+
+(defn- hoist-invocations-post-walk [{:keys [root-ast path] :as context}]
+  (let [ast (get-in root-ast path)
+        ast (case (:node-type ast)
+              ast)]
+    (-> context
+        (assoc-in (cons :root-ast path) ast))))
+
+
+(defn hoist-invocations-pass
+  [context]
+  (-> context
+      (walk-ast hoist-invocations-pre-walk hoist-invocations-post-walk)))
 
 ;; -----------------------------------
 
