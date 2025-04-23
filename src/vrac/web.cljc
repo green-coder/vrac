@@ -29,13 +29,15 @@
   *userland-context*)
 
 (defmacro with-context [new-context vcup]
-  `(binding [*userland-context* ~new-context]
-     (process-vcup ~vcup)))
+  #?(:clj
+     `(binding [*userland-context* ~new-context]
+        (process-vcup ~vcup))))
 
 (defmacro with-context-update [context-fn vcup]
-  `(let [parent-context# *userland-context*
-         new-context# (sr/create-derived (fn [] (~context-fn parent-context#)))]
-     (with-context new-context# ~vcup)))
+  #?(:clj
+     `(let [parent-context# *userland-context*
+            new-context# (sr/create-derived (fn [] (~context-fn parent-context#)))]
+        (with-context new-context# ~vcup))))
 
 ;; ----------------------------------------------
 
@@ -449,23 +451,25 @@
                            options)))))
 
 (defmacro when-fragment [reactive+-condition then-vcup-expr]
-  `(let [reactive+-condition# ~reactive+-condition
-         boolean-condition# (sr/create-memo (fn []
-                                              (boolean (deref+ reactive+-condition#))))
-         vcup-fn# (fn []
-                    (when @boolean-condition#
-                      ~then-vcup-expr))]
-     (reactive-fragment vcup-fn# {:metadata {:name "when-fragment"}})))
+  #?(:clj
+     `(let [reactive+-condition# ~reactive+-condition
+            boolean-condition# (sr/create-memo (fn []
+                                                 (boolean (deref+ reactive+-condition#))))
+            vcup-fn# (fn []
+                       (when @boolean-condition#
+                         ~then-vcup-expr))]
+        (reactive-fragment vcup-fn# {:metadata {:name "when-fragment"}}))))
 
 (defmacro if-fragment [reactive+-condition then-vcup-expr else-vcup-expr]
-  `(let [reactive+-condition# ~reactive+-condition
-         boolean-condition# (sr/create-memo (fn []
-                                              (boolean (deref+ reactive+-condition#))))
-         vcup-fn# (fn []
-                    (if @boolean-condition#
-                      ~then-vcup-expr
-                      ~else-vcup-expr))]
-     (reactive-fragment vcup-fn# {:metadata {:name "if-fragment"}})))
+  #?(:clj
+     `(let [reactive+-condition# ~reactive+-condition
+            boolean-condition# (sr/create-memo (fn []
+                                                 (boolean (deref+ reactive+-condition#))))
+            vcup-fn# (fn []
+                       (if @boolean-condition#
+                         ~then-vcup-expr
+                         ~else-vcup-expr))]
+        (reactive-fragment vcup-fn# {:metadata {:name "if-fragment"}}))))
 
 (defn- indexed-fragment [reactive-matched-index-or-nil
                          clause-index->clause-vcup
@@ -495,24 +499,25 @@
                       default-clause)))
 
 (defmacro case-fragment [reactive+-value-expr & clauses]
-  (let [[even-number-of-exprs default-clause] (if (even? (count clauses))
-                                                [clauses ::undefined]
-                                                [(butlast clauses) (last clauses)])
-        clauses (partitionv 2 even-number-of-exprs)
-        clause-value->clause-index (into {}
-                                         (comp (map-indexed (fn [index [clause-value _clause-vcup]]
-                                                              (if (seq? clause-value)
-                                                                (->> clause-value
-                                                                     (mapv (fn [clause-value-item]
-                                                                             [clause-value-item index])))
-                                                                [[clause-value index]])))
-                                               cat)
-                                         clauses)
-        clause-index->clause-vcup (mapv second clauses)]
-    `(case-fragment* ~reactive+-value-expr
-                     ~clause-value->clause-index
-                     ~clause-index->clause-vcup
-                     ~default-clause)))
+  #?(:clj
+     (let [[even-number-of-exprs default-clause] (if (even? (count clauses))
+                                                   [clauses ::undefined]
+                                                   [(butlast clauses) (last clauses)])
+           clauses (partitionv 2 even-number-of-exprs)
+           clause-value->clause-index (into {}
+                                            (comp (map-indexed (fn [index [clause-value _clause-vcup]]
+                                                                 (if (seq? clause-value)
+                                                                   (->> clause-value
+                                                                        (mapv (fn [clause-value-item]
+                                                                                [clause-value-item index])))
+                                                                   [[clause-value index]])))
+                                                  cat)
+                                            clauses)
+           clause-index->clause-vcup (mapv second clauses)]
+       `(case-fragment* ~reactive+-value-expr
+                        ~clause-value->clause-index
+                        ~clause-index->clause-vcup
+                        ~default-clause))))
 
 (defn cond-fragment* [reactive-index-fn
                       clause-index->clause-vcup]
@@ -522,16 +527,17 @@
 
 (defmacro cond-fragment [& clauses]
   (assert (even? (count clauses)) "cond-fragment requires an even number of forms")
-  (let [clauses (partitionv 2 clauses)
-        clause-index->clause-vcup (mapv second clauses)]
-    `(cond-fragment* (fn []
-                       (cond
-                         ~@(into []
-                                 (comp (map-indexed (fn [index [clause-condition _clause-vcup]]
-                                                      [`~clause-condition index]))
-                                       cat)
-                                 clauses)))
-                     ~clause-index->clause-vcup)))
+  #?(:clj
+     (let [clauses (partitionv 2 clauses)
+           clause-index->clause-vcup (mapv second clauses)]
+       `(cond-fragment* (fn []
+                          (cond
+                            ~@(into []
+                                    (comp (map-indexed (fn [index [clause-condition _clause-vcup]]
+                                                         [`~clause-condition index]))
+                                          cat)
+                                    clauses)))
+                        ~clause-index->clause-vcup))))
 
 #?(:cljs
    (defn for-fragment*
