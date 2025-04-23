@@ -18,7 +18,8 @@ When the keyword has no namespace, its meaning depends on its name:
 2. if the keyword starts with `"data-"` then it represents
    [a custom data attribute](https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Global_attributes/data-*)
    (e.g. `:data-testid`), or else
-3. it represents a DOM element's property (e.g. `:htmlFor`, which is equivalent to `:p/htmlFor`).
+3. if the prop is applied on an SVG on MathML element then it represents an attribute, or else
+4. it represents a DOM element's property (e.g. `:htmlFor`, which is equivalent to `:p/htmlFor`).
 
 ### Letter case in prop names
 
