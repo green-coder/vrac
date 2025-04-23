@@ -4,10 +4,10 @@
 
 (defn- ref-signal-article [element-ref]
   ($ :article
-     ($ :h2 "Capture an element in a reactive signal via the special attribute `ref`")
+     ($ :h2 "Capture an element in a reactive signal via the special prop `ref`")
      (let [is-existing (sr/create-signal false)]
        ($ :div
-          ($ :button {:on-click (fn [] (swap! is-existing not))}
+          ($ :button {:on/click (fn [] (swap! is-existing not))}
              (sr/create-derived (fn [] (if @is-existing "Destroy element" "Create element"))))
           " "
           (vw/when-fragment is-existing
@@ -32,7 +32,7 @@
      ($ :div
         {:style {:width "50px"
                  :height "50px"}}
-        (vw/attributes-effect
+        (vw/props-effect
           (fn []
             {:style {:background-color (if (nil? @element-ref)
                                          "red"

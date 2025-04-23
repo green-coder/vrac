@@ -59,19 +59,19 @@
                        (clojure.string/split " ")
                        first)))]
     ($ :div.example-clock
-       (vw/attributes-effect (fn []
-                               {:style {:color @colour}}))
+       (vw/props-effect (fn []
+                          {:style {:color @colour}}))
        time)))
 
 (defn color-input []
   ($ :div.color-input
      "Display color: "
      ($ :input
-        (vw/attributes-effect (fn []
-                                {:value @(rf/subscribe [:time-color])}))
+        (vw/props-effect (fn []
+                           {:value @(rf/subscribe [:time-color])}))
         {:type "text"
          :style {:border "1px solid #CCC"}
-         :on-input (fn [^js e]
+         :on/input (fn [^js e]
                      (let [text (-> e .-target .-value)]
                        (rf/dispatch [:time-color-change text])))})))
 
