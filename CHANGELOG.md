@@ -9,6 +9,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 ### Changed
 
 - Uses a new format for naming the attributes, properties and event handlers (#5).
+- `vrac.web/attributes-effect` renamed to `vrac.web/props-effect`.
 
 ### Added
 
