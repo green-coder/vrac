@@ -11,7 +11,7 @@ Vrac is a frontend rendering library in Clojure, for Clojurists.
 Features implemented so far:
 - 100% Written in Clojure(script)
 - Uses signals to do efficient fine-grained updates on the DOM
-- As a good interop with React and Clojurescript React wrappers
+- Has a good interop with React and Clojurescript React wrappers
 - 100% compatible with Re-frame via the fork [Si-frame](https://github.com/metosin/si-frame)
 - Has [concise and simple examples](/example) showing how to use it
 

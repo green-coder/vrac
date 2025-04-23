@@ -4,7 +4,7 @@
   <packaging>jar</packaging>
   <groupId>fi.metosin</groupId>
   <artifactId>vrac</artifactId>
-  <version>0.1.0</version>
+  <version>0.1.1</version>
   <name>vrac</name>
   <description>A frontend rendering library in Clojure, for Clojurists</description>
   <inceptionYear>2025</inceptionYear>

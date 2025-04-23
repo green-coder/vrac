@@ -5,8 +5,8 @@
                                 :git/sha "e553bf33e6b6aef556d6713f9b0db4d13df33345"}}
 
  :aliases {:dev {:extra-deps {org.clojure/clojure       {:mvn/version "1.12.0"}
-                              org.clojure/clojurescript {:mvn/version "1.11.132"}
-                              djblue/portal             {:mvn/version "0.58.5"}
+                              org.clojure/clojurescript {:mvn/version "1.12.35"}
+                              djblue/portal             {:mvn/version "0.59.0"}
                               lambdaisland/deep-diff2   {:mvn/version "2.12.219"}}}
 
            :test     {:extra-paths ["test" "test-resource"]
@@ -25,7 +25,7 @@
                   :exec-args    {:sync-pom    true
                                  :group-id    "fi.metosin"
                                  :artifact-id "vrac"
-                                 :version     "0.1.0"
+                                 :version     "0.1.1"
                                  :jar         "vrac.jar"}}
 
            :deploy {:extra-deps {slipset/deps-deploy {:mvn/version "0.2.2"}}
