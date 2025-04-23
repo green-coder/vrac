@@ -12,7 +12,7 @@
   (let [counter (sr/create-signal 0)]
     ($ :article
        ($ :h2 "DIY context using dynamic variables")
-       ($ :button {:on-click #(swap! counter inc)} "counter = " counter)
+       ($ :button {:on/click #(swap! counter inc)} "counter = " counter)
        (display-diy-context "global context")
        (let [context *diy-context* ;; The current context, expectedly a reactive node.
              local-context (sr/create-derived (fn [] (-> @context
@@ -38,7 +38,7 @@
     (vw/with-context root-context
       ($ :article
          ($ :h2 "Built-in context")
-         ($ :button {:on-click #(swap! counter inc)} "counter = " counter)
+         ($ :button {:on/click #(swap! counter inc)} "counter = " counter)
          ($ display-built-in-context "global context")
          (vw/with-context-update (fn [parent-context]
                                    (-> @parent-context
@@ -67,8 +67,8 @@
                                                           :name name})))))]
     ($ :article
        ($ :h2 "Context on a reactive fragment")
-       ($ :button {:on-click #(swap! person-count inc)} "Add 1 person to the party")
-       ($ :button {:on-click #(swap! root-context update :birthday-party not)}
+       ($ :button {:on/click #(swap! person-count inc)} "Add 1 person to the party")
+       ($ :button {:on/click #(swap! root-context update :birthday-party not)}
           (sr/create-memo (fn []
                             (if (-> @root-context :birthday-party)
                               "Turn the party OFF"

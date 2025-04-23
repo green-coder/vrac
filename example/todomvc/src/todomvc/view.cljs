@@ -18,15 +18,15 @@
     ($ :<>
        (vw/use-effects [(focus-on-create ref)])
        ($ :input.new-todo
-          (vw/attributes-effect
+          (vw/props-effect
             (fn []
               {:value @title}))
           {:ref         ref
            :type        "text"
            :placeholder "What needs to be done?"
-           :on-input    (fn [^js event]
+           :on/input    (fn [^js event]
                           (rf/dispatch [:comp.input/on-title-changed (-> event .-target .-value)]))
-           :on-keyDown  (fn [^js event]
+           :on/keydown  (fn [^js event]
                           (let [key-pressed   (.-which event)
                                 trimmed-title (str/trim @title)]
                             (when (and (= key-pressed const/enter-keycode)
@@ -38,12 +38,12 @@
     ($ :<>
        ($ :input#toggle-all.toggle-all
           {:type "checkbox"
-           :on-change (fn []
+           :on/change (fn []
                         (rf/dispatch [:toggle-all-todo-items @all-completed]))}
-          (vw/attributes-effect
+          (vw/props-effect
             (fn []
               {:checked @all-completed})))
-       ($ :label {:for "toggle-all"} "Mark all as complete"))))
+       ($ :label {:htmlFor "toggle-all"} "Mark all as complete"))))
 
 (defn todo-edit [todo-item editing]
   (let [ref (sr/create-signal nil)
@@ -53,17 +53,17 @@
       ($ :<>
          (vw/use-effects [(focus-on-create ref)])
          ($ :input.edit
-            (vw/attributes-effect
+            (vw/props-effect
               (fn []
                 {:value @edit-title}))
             {:ref        ref
              :type       "text"
-             :on-input  (fn [^js event]
+             :on/input  (fn [^js event]
                           (reset! edit-title (-> event .-target .-value)))
-             :on-blur    (fn [_]
+             :on/blur    (fn [_]
                            (reset! editing false)
                            (rf/dispatch [:set-todo-item-title (:id @todo-item) @edit-title]))
-             :on-keyDown (fn [^js event]
+             :on/keydown (fn [^js event]
                            (let [key-pressed (.-which event)]
                              (cond
                                (= key-pressed const/enter-keycode)
@@ -81,7 +81,7 @@
         title (sr/create-memo (fn [] (:title @todo)))
         completed (sr/create-memo (fn [] (:completed @todo)))]
     ($ :li
-       (vw/attributes-effect
+       (vw/props-effect
          (fn []
            {:class [(when @completed "completed")
                     (when @editing "editing")]
@@ -91,15 +91,15 @@
        ($ :div.view
           ($ :input.toggle
              {:type "checkbox"
-              :on-change (fn [_]
+              :on/change (fn [_]
                            (rf/dispatch [:toggle-todo-item todo-item-id]))}
-             (vw/attributes-effect
+             (vw/props-effect
                (fn []
                  {:checked @completed})))
-          ($ :label {:on-dblclick (fn [_]
+          ($ :label {:on/dblclick (fn [_]
                                     (reset! editing true))}
              title)
-          ($ :button.destroy {:on-click (fn [_]
+          ($ :button.destroy {:on/click (fn [_]
                                           (rf/dispatch [:delete-todo-item todo-item-id]))}))
        ($ todo-edit todo editing))))
 
@@ -123,19 +123,19 @@
   (let [display-type (rf/subscribe [:comp/display-type])]
     ($ :ul.filters
        ($ :li ($ :a
-                 (vw/attributes-effect
+                 (vw/props-effect
                    (fn []
                      {:class [(when (= @display-type :all) "selected")]}))
                  {:href (rtfe/href :page/all-todo-items)}
                  "All"))
        ($ :li ($ :a
-                 (vw/attributes-effect
+                 (vw/props-effect
                    (fn []
                      {:class [(when (= @display-type :active) "selected")]}))
                  {:href (rtfe/href :page/active-todo-items)}
                  "Active"))
        ($ :li ($ :a
-                 (vw/attributes-effect
+                 (vw/props-effect
                    (fn []
                      {:class [(when (= @display-type :completed) "selected")]}))
                  {:href (rtfe/href :page/completed-todo-items)}
@@ -144,9 +144,9 @@
 (defn clear-completed-button []
   (let [complemented-todo-items-to-clear (rf/subscribe [:complemented-todo-items-to-clear])]
     ($ :button.clear-completed
-       {:on-click (fn [_]
+       {:on/click (fn [_]
                     (rf/dispatch [:clean-completed-todo-items]))}
-       (vw/attributes-effect
+       (vw/props-effect
           (fn []
             {:style {:display (if @complemented-todo-items-to-clear "inline" "none")}}))
        "Clear completed")))
@@ -158,7 +158,7 @@
           ($ :header.header
              ($ :h1 "todos")
              ($ todo-item-creation-input))
-          ($ :div (vw/attributes-effect
+          ($ :div (vw/props-effect
                     (fn []
                       {:style {:display (if @any-todo-item "inline" "none")}}))
              ($ :section.main

@@ -1,7 +1,7 @@
 (ns react-interop.interop
   (:require [signaali.reactive :as sr]
             [reagent.core :as r]
-            [vrac.web :as vw :refer [$]]
+            [vrac.web :as vw]
             [uix.core :as uix]
             [uix.dom :as dom]))
 
@@ -37,10 +37,10 @@
 
 ;; Vrac component
 (defn interop-with-reagent-component-article [text1 text2]
-  ($ :article
-    ($ :h2 "React component implemented via Siagent")
+  (vw/$ :article
+    (vw/$ :h2 "React component implemented via Siagent")
     (let [dom-node-ref (sr/create-signal nil)]
-      ($ :div {:ref dom-node-ref}
+      (vw/$ :div {:ref dom-node-ref}
         (mount-react-root-effect dom-node-ref
           (fn []
             (r/as-element [my-reagent-component @text1 text2])))))))
@@ -58,10 +58,10 @@
 
 ;; Vrac component
 (defn interop-with-uix-component-article [text1 text2]
-  ($ :article
-    ($ :h2 "React component implemented via UIx")
+  (vw/$ :article
+    (vw/$ :h2 "React component implemented via UIx")
     (let [dom-node-ref (sr/create-signal nil)]
-      ($ :div {:ref dom-node-ref}
+      (vw/$ :div {:ref dom-node-ref}
         (mount-react-root-effect dom-node-ref
           (fn []
             (uix/$ my-react-component {:text @text1
@@ -69,23 +69,24 @@
 
 ;; ---------------------------------------------------
 
+;; Vrac component
 (defn- text-input [label text-signal]
-  ($ :div
+  (vw/$ :div
      label ": "
-     ($ :input
-        (vw/attributes-effect (fn [] {:value @text-signal}))
-        {:on-input (fn [^js event]
+     (vw/$ :input
+        (vw/props-effect (fn [] {:value @text-signal}))
+        {:on/input (fn [^js event]
                      (reset! text-signal (-> event .-target .-value)))})))
 
 ;; Vrac component
 (defn interop-demo []
-  ($ :main
-     ($ :h1 "Vrac + React interop demo")
+  (vw/$ :main
+     (vw/$ :h1 "Vrac + React interop demo")
      (let [text1 (sr/create-signal "text1")
            text2 (sr/create-signal "text2")]
-       ($ :div
-          ($ text-input "Text1" text1)
-          ($ text-input "Text2" text2)
+       (vw/$ :div
+          (vw/$ text-input "Text1" text1)
+          (vw/$ text-input "Text2" text2)
 
-          ($ interop-with-reagent-component-article text1 text2)
-          ($ interop-with-uix-component-article text1 text2)))))
+          (vw/$ interop-with-reagent-component-article text1 text2)
+          (vw/$ interop-with-uix-component-article text1 text2)))))

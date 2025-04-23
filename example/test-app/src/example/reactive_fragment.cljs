@@ -7,8 +7,8 @@
   ($ :div
      "Counter value: " counter-state
      ($ :div
-        ($ :button {:on-click #(swap! counter-state inc)} "+1")
-        ($ :button {:on-click #(swap! counter-state (fn [n] (+ n 2)))} "+2"))))
+        ($ :button {:on/click #(swap! counter-state inc)} "+1")
+        ($ :button {:on/click #(swap! counter-state (fn [n] (+ n 2)))} "+2"))))
 
 (defn- if-fragment-article []
   (let [counter-state (sr/create-state 0)]
@@ -23,10 +23,10 @@
   (let [state (sr/create-state {:current-route :route/homepage})]
     ($ :article
        ($ :h2 "Case fragment")
-       ($ :button {:on-click #(swap! state assoc :current-route :route/homepage)} "Home")
-       ($ :button {:on-click #(swap! state assoc :current-route :route/blog)}     "Blog")
-       ($ :button {:on-click #(swap! state assoc :current-route :route/about)}    "About")
-       ($ :button {:on-click #(swap! state assoc :current-route :route/bookmark)} "Non-existing route")
+       ($ :button {:on/click #(swap! state assoc :current-route :route/homepage)} "Home")
+       ($ :button {:on/click #(swap! state assoc :current-route :route/blog)}     "Blog")
+       ($ :button {:on/click #(swap! state assoc :current-route :route/about)}    "About")
+       ($ :button {:on/click #(swap! state assoc :current-route :route/bookmark)} "Non-existing route")
        (vw/case-fragment (fn [] (:current-route @state))
           :route/homepage ($ :div "This is the homepage.")
           :route/blog     ($ :div "This is the blog.")
@@ -37,10 +37,10 @@
   (let [current-route (sr/create-state :route/homepage)]
     ($ :article
        ($ :h2 "Cond fragment")
-       ($ :button {:on-click #(reset! current-route :route/homepage)} "Home")
-       ($ :button {:on-click #(reset! current-route :route/blog)}     "Blog")
-       ($ :button {:on-click #(reset! current-route :route/about)}    "About")
-       ($ :button {:on-click #(reset! current-route :route/bookmark)} "Non-existing route")
+       ($ :button {:on/click #(reset! current-route :route/homepage)} "Home")
+       ($ :button {:on/click #(reset! current-route :route/blog)}     "Blog")
+       ($ :button {:on/click #(reset! current-route :route/about)}    "About")
+       ($ :button {:on/click #(reset! current-route :route/bookmark)} "Non-existing route")
        ;; The vw/cond-fragment macro groups the clauses' conditions and wraps them into a fn.
        (vw/cond-fragment
          (= @current-route :route/homepage) ($ :div "This is the homepage.")
@@ -58,10 +58,10 @@
        (let [new-person-name (sr/create-state "Louise")]
          ($ :div
             ($ :input
-               (vw/attributes-effect (fn [] {:value @new-person-name}))
-               {:on-input (fn [event]
+               (vw/props-effect (fn [] {:value @new-person-name}))
+               {:on/input (fn [event]
                             (reset! new-person-name (-> event .-target .-value)))})
-            ($ :button {:on-click (fn []
+            ($ :button {:on/click (fn []
                                     (when-not (str/blank? @new-person-name)
                                       (swap! state update :persons
                                              (fn [persons]

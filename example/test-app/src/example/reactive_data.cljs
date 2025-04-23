@@ -8,8 +8,8 @@
   ($ :div
      "Counter value: " counter-state
      ($ :div
-        ($ :button {:on-click #(swap! counter-state inc)} "Increment")
-        ($ :button {:on-click #(reset! counter-state 0)} "Reset"))))
+        ($ :button {:on/click #(swap! counter-state inc)} "Increment")
+        ($ :button {:on/click #(reset! counter-state 0)} "Reset"))))
 
 (defn- counters-article []
   ($ :article
@@ -24,8 +24,8 @@
      ($ :div "This input prevents its content from containing \"foobar\".")
      (let [text-signal (sr/create-signal "foo")]
        ($ :input
-          (vw/attributes-effect (fn [] {:value @text-signal}))
-          {:on-input (fn [^js event]
+          (vw/props-effect (fn [] {:value @text-signal}))
+          {:on/input (fn [^js event]
                        (let [text (-> event .-target .-value)]
                          (swap! text-signal (fn [previous-text]
                                               (if (str/includes? text "foobar")

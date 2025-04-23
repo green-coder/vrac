@@ -41,7 +41,7 @@
 
 (defrecord VcupNode [node-type children])
 (defrecord ReactiveFragment [reactive-node])
-(defrecord AttributeEffect [reactive+-attributes])
+(defrecord PropEffect [reactive+-props])
 (defrecord ComponentResult [effects elements])
 
 ;; ----------------------------------------------
@@ -68,8 +68,8 @@
 (defn- reactive-fragment? [x]
   (instance? ReactiveFragment x))
 
-(defn- attribute-effect? [x]
-  (instance? AttributeEffect x))
+(defn- prop-effect? [x]
+  (instance? PropEffect x))
 
 (defn- component-result? [x]
   (instance? ComponentResult x))
@@ -77,13 +77,13 @@
 (defn- reactive-node? [x]
   (instance? signaali.reactive.ReactiveNode x))
 
-(defn- attribute-map? [x]
+(defn- prop-map? [x]
   (and (map? x)
        (not (record? x))))
 
-(defn- attributes? [x]
-  (or (attribute-map? x)
-      (attribute-effect? x)))
+(defn- props? [x]
+  (or (prop-map? x)
+      (prop-effect? x)))
 
 ;; ----------------------------------------------
 
@@ -124,7 +124,7 @@
          (str/join " ")
          (not-empty))))
 
-(defn- compose-attribute-maps [base new]
+(defn- compose-prop-maps [base new]
   (let [style (into (or (:style base) {}) (:style new))
         class (into (or (:class base) []) (some-> (:class new) ensure-coll))]
     (-> base
@@ -151,97 +151,100 @@
                              (reset! ref nil))))))))
 
 #?(:cljs
-   (defn- set-element-attribute [xmlns-kw ^js/Element element attribute-kw attribute-value]
-     (let [attribute-name (name attribute-kw)]
+   (defn- set-element-prop [xmlns-kw ^js/Element element prop-kw prop-value]
+     (let [prop-ns (namespace prop-kw)
+           prop-name (name prop-kw)]
        (cond
+         (= prop-ns "a")
+         (-> element (.setAttribute prop-name prop-value))
+
+         (= prop-ns "p")
+         (-> element (gobj/set prop-name prop-value))
+
+         (= prop-ns "on")
+         (-> element (.addEventListener prop-name prop-value))
+
          ;; TODO: see if we could use `classList` on the element
-         (= attribute-kw :class)
+         (= prop-kw :class)
          (if (= xmlns-kw :none)
-           (-> element (gobj/set "className" (class->str attribute-value)))
-           (-> element (.setAttribute "class" (class->str attribute-value))))
+           (-> element (gobj/set "className" (class->str prop-value)))
+           (-> element (.setAttribute "class" (class->str prop-value))))
 
-         (= attribute-kw :style)
+         (= prop-kw :style)
          (if (= xmlns-kw :none)
-           (-> element (gobj/set "style" (style->str attribute-value)))
-           (-> element (.setAttribute "style" (style->str attribute-value))))
+           (-> element (gobj/set "style" (style->str prop-value)))
+           (-> element (.setAttribute "style" (style->str prop-value))))
 
-         (= attribute-kw :ref)
+         (= prop-kw :ref)
          nil ;; no-op
 
-         (= attribute-kw :for)
-         (-> element (.setAttribute "for" attribute-value))
-
-         (str/starts-with? attribute-name "on-")
-         ;; Add an event listener
-         (-> element (.addEventListener (-> attribute-name
-                                            (subs (count "on-"))
-                                            str/lower-case)
-                                        attribute-value))
-
-         (str/starts-with? attribute-name "data-")
-         (-> element (.setAttribute attribute-name attribute-value))
+         (str/starts-with? prop-name "data-")
+         (-> element (.setAttribute prop-name prop-value))
 
          :else
-         ;; Set a general element attribute
-         (let [attribute-value (when-not (false? attribute-value) attribute-value)]
+         (let [prop-value (when-not (false? prop-value) prop-value)]
            (if (= xmlns-kw :none)
-             (-> element (gobj/set attribute-name attribute-value))
-             (-> element (.setAttribute attribute-name attribute-value))))))))
+             (-> element (gobj/set prop-name prop-value))
+             (-> element (.setAttribute prop-name prop-value))))))))
 
 #?(:cljs
-   (defn- unset-element-attribute [xmlns-kw ^js/Element element attribute-kw attribute-value]
-     (let [attribute-name (name attribute-kw)]
+   (defn- unset-element-prop [xmlns-kw ^js/Element element prop-kw prop-value]
+     (let [prop-ns (namespace prop-kw)
+           prop-name (name prop-kw)]
        (cond
-         (= attribute-kw :class)
-         (-> element (.removeAttribute "className"))
+         (= prop-ns "a")
+         (-> element (.removeAttribute prop-name))
 
-         (= attribute-kw :style)
-         (-> element (.removeAttribute "style"))
+         (= prop-ns "p")
+         (-> element (gobj/set prop-name nil))
 
-         (= attribute-kw :ref)
+         (= prop-ns "on")
+         (-> element (.removeEventListener prop-name prop-value))
+
+         (= prop-kw :class)
+         (if (= xmlns-kw :none)
+           (-> element (gobj/set "className" nil))
+           (-> element (.removeAttribute "className")))
+
+         (= prop-kw :style)
+         (if (= xmlns-kw :none)
+           (-> element (gobj/set "style" nil))
+           (-> element (.removeAttribute "style")))
+
+         (= prop-kw :ref)
          nil ;; no-op
 
-         (= attribute-kw :for)
-         (-> element (.removeAttribute "for"))
-
-         (str/starts-with? attribute-name "on-")
-         ;; Event listener
-         (-> element (.removeEventListener (-> attribute-name
-                                               (subs (count "on-"))
-                                               str/lower-case)
-                                           attribute-value))
-
-         (str/starts-with? attribute-name "data-")
-         (-> element (.removeAttribute attribute-name))
+         (str/starts-with? prop-name "data-")
+         (-> element (.removeAttribute prop-name))
 
          :else
          (if (= xmlns-kw :none)
-           (-> element (gobj/set attribute-name nil))
-           (-> element (.removeAttribute attribute-name)))))))
+           (-> element (gobj/set prop-name nil))
+           (-> element (.removeAttribute prop-name)))))))
 
 #?(:cljs
-   (defn- dynamic-attributes-effect [xmlns-kw ^js/Element element attrs]
+   (defn- dynamic-props-effect [xmlns-kw ^js/Element element attrs]
      (let [attrs (->> attrs
-                      ;; Combine the consecutive attribute-maps together, and
-                      ;; unwrap the reactive+-attributes in AttributeEffect values.
+                      ;; Combine the consecutive prop-maps together, and
+                      ;; unwrap the reactive+-props in PropEffect values.
                       (into []
                             (comp
-                              (partition-by attribute-effect?)
-                              (mapcat (fn [attribute-group]
-                                        (if (attribute-map? (first attribute-group))
-                                          [(reduce compose-attribute-maps {} attribute-group)]
-                                          (mapv :reactive+-attributes attribute-group)))))))
-           old-attributes (atom nil)]
+                              (partition-by prop-effect?)
+                              (mapcat (fn [prop-group]
+                                        (if (prop-map? (first prop-group))
+                                          [(reduce compose-prop-maps {} prop-group)]
+                                          (mapv :reactive+-props prop-group)))))))
+           old-props (atom nil)]
        (sr/create-effect (fn []
-                           (let [attributes (transduce (map deref+) compose-attribute-maps {} attrs)]
-                             (doseq [[attribute-kw attribute-value] @old-attributes
-                                     :when (not (contains? attributes attribute-kw))]
-                               (unset-element-attribute xmlns-kw element attribute-kw attribute-value))
+                           (let [props (transduce (map deref+) compose-prop-maps {} attrs)]
+                             (doseq [[prop-kw prop-value] @old-props
+                                     :when (not (contains? props prop-kw))]
+                               (unset-element-prop xmlns-kw element prop-kw prop-value))
 
-                             (doseq [[attribute-kw attribute-value] attributes]
-                               (set-element-attribute xmlns-kw element attribute-kw attribute-value))
+                             (doseq [[prop-kw prop-value] props]
+                               (set-element-prop xmlns-kw element prop-kw prop-value))
 
-                             (reset! old-attributes attributes)))))))
+                             (reset! old-props props)))))))
 
 #?(:cljs
    (defn dynamic-children-effect
@@ -299,8 +302,8 @@
                                (reactive-fragment? vcup)
                                [vcup]
 
-                               (attributes? vcup)
-                               (throw (js/Error. "Attributes cannot be at the root of a scope."))
+                               (props? vcup)
+                               (throw (js/Error. "Props cannot be at the root of a scope."))
 
                                ;; Component result (when the component is directly invoked)
                                (component-result? vcup)
@@ -348,35 +351,35 @@
 
                                      children (:children vcup)
 
-                                     ;; Collect all the attributes.
-                                     attributes (cons (cond-> {}
-                                                              (some? id) (assoc :id id)
-                                                              (seq classes) (assoc :class classes))
-                                                      (filterv attributes? children))
+                                     ;; Collect all the props.
+                                     props (cons (cond-> {}
+                                                         (some? id) (assoc :id id)
+                                                         (seq classes) (assoc :class classes))
+                                                 (filterv props? children))
 
                                      ;; Convert the children into elements.
                                      child-elements (binding [*xmlns-kw* children-xmlns-kw]
                                                       (into []
-                                                            (comp (remove attributes?)
+                                                            (comp (remove props?)
                                                                   inline-seq-children-xf
                                                                   (mapcat to-dom-elements))
                                                             children))]
                                  ;; TODO: Can we use on-dispose instead?
                                  ;; Create an effect bound to the element's lifespan.
-                                 ;; It is limited to statically declared :ref attributes.
+                                 ;; It is limited to statically declared :ref props.
                                  (let [refs (into []
-                                                  (comp (filter attribute-map?)
+                                                  (comp (filter prop-map?)
                                                         (keep :ref))
-                                                  attributes)]
+                                                  props)]
                                    (when (seq refs)
                                      (swap! all-effects conj (refs-effect element refs))))
 
-                                 ;; Set the element's attributes
-                                 (if (every? attribute-map? attributes)
-                                   (let [composed-attribute-maps (reduce compose-attribute-maps {} attributes)]
-                                     (doseq [[attribute-kw attribute-value] composed-attribute-maps]
-                                       (set-element-attribute xmlns-kw element attribute-kw attribute-value)))
-                                   (swap! all-effects conj (dynamic-attributes-effect xmlns-kw element attributes)))
+                                 ;; Set the element's props
+                                 (if (every? prop-map? props)
+                                   (let [composed-prop-maps (reduce compose-prop-maps {} props)]
+                                     (doseq [[prop-kw prop-value] composed-prop-maps]
+                                       (set-element-prop xmlns-kw element prop-kw prop-value)))
+                                   (swap! all-effects conj (dynamic-props-effect xmlns-kw element props)))
 
                                  ;; Set the element's children
                                  (if (every? dom-node? child-elements)
@@ -405,8 +408,8 @@
 (defn use-effects [effects]
   (ComponentResult. effects nil))
 
-(defn attributes-effect [reactive+-attributes]
-  (AttributeEffect. reactive+-attributes))
+(defn props-effect [reactive+-props]
+  (PropEffect. reactive+-props))
 
 ;; ----------------------------------------------
 
