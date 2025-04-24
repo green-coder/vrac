@@ -1,12 +1,10 @@
-name: Check Cljdoc
+name: CljDoc Check
 
-on: [push, pull_request]
+on: [pull_request]
 
 jobs:
 
   check-cljdoc:
-
-    name: Release
 
     timeout-minutes: 60
 
@@ -21,7 +19,7 @@ jobs:
           cli: latest
 
       - name: Build the jar and update pom.xml's version
-        run: clojure -X:jar
+        run: clojure -X:jar && mkdir target && mv *.jar target/
 
       - name: CljDoc Check
         uses: cljdoc/cljdoc-check-action@v0.0.3
