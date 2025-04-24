@@ -1,10 +1,16 @@
-name: CljDoc Check
+name: CljDoc
 
-on: [pull_request]
+on:
+  push:
+    branches:
+      - main
+  pull_request:
 
 jobs:
 
   check-cljdoc:
+
+    name: Check source code
 
     timeout-minutes: 60
 
