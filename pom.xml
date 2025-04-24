@@ -18,7 +18,7 @@
     <url>https://github.com/metosin/vrac</url>
     <connection>scm:git:git://github.com/metosin/vrac.git</connection>
     <developerConnection>scm:git:ssh://git@github.com/metosin/vrac.git</developerConnection>
-    <tag>main</tag>
+    <tag>v0.1.1</tag>
   </scm>
   <dependencies>
     <dependency>
