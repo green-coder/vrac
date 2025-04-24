@@ -1,4 +1,4 @@
-(ns vrac.dsl.ast
+(ns ^:no-doc vrac.dsl.ast
   (:require #?(:clj [lambdaisland.deep-diff2 :refer [diff]])
             [mate.core :as mc]))
 

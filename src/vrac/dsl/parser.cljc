@@ -1,4 +1,4 @@
-(ns vrac.dsl.parser
+(ns ^:no-doc vrac.dsl.parser
   #?(:cljs (:require-macros [vrac.dsl.parser]))
   (:require [mate.core :as mc]
             [vrac.dsl :as dsl]

@@ -1,4 +1,4 @@
-(ns vrac.dsl.macro
+(ns ^:no-doc vrac.dsl.macro
   (:refer-clojure :exclude [destructure])
   (:require [mate.core :as mc]))
 

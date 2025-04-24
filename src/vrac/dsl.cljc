@@ -1,4 +1,4 @@
-(ns vrac.dsl)
+(ns ^:no-doc vrac.dsl)
 
 ;; Keywords used in Vrac's DSL which are already defined in clojure.core/cljs.core:
 ;; defn, let, when, for
