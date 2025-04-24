@@ -1,10 +1,16 @@
-name: Run tests
+name: Validate
 
-on: [push, pull_request]
+on:
+  push:
+    branches:
+      - main
+  pull_request:
 
 jobs:
 
   test:
+
+    name: Unit and e2e tests
 
     timeout-minutes: 60
 

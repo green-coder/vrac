@@ -503,7 +503,7 @@
      (let [[even-number-of-exprs default-clause] (if (even? (count clauses))
                                                    [clauses ::undefined]
                                                    [(butlast clauses) (last clauses)])
-           clauses (partitionv 2 even-number-of-exprs)
+           clauses (partition 2 even-number-of-exprs)
            clause-value->clause-index (into {}
                                             (comp (map-indexed (fn [index [clause-value _clause-vcup]]
                                                                  (if (seq? clause-value)
@@ -528,7 +528,7 @@
 (defmacro cond-fragment [& clauses]
   (assert (even? (count clauses)) "cond-fragment requires an even number of forms")
   #?(:clj
-     (let [clauses (partitionv 2 clauses)
+     (let [clauses (partition 2 clauses)
            clause-index->clause-vcup (mapv second clauses)]
        `(cond-fragment* (fn []
                           (cond

@@ -9,7 +9,7 @@ jobs:
 
   test-and-release:
 
-    name: Release
+    name: Validate, Jar and Deploy
 
     timeout-minutes: 60
 
