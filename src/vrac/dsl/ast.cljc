@@ -1,5 +1,5 @@
 (ns vrac.dsl.ast
-  (:require [lambdaisland.deep-diff2 :refer [diff]]
+  (:require #?(:clj [lambdaisland.deep-diff2 :refer [diff]])
             [mate.core :as mc]))
 
 ;; node-type -> child-node -> #{:one :many}
@@ -392,9 +392,11 @@
 ;; This is a template for creating a new pass.
 ;; Copy/paste, rename those functions, then implement
 
+#_
 (defn- xxx-pre-walk [context]
   context)
 
+#_
 (defn- xxx-post-walk [{:keys [root-ast path] :as context}]
   (let [ast (get-in root-ast path)
         ast (case (:node-type ast)
@@ -406,6 +408,7 @@
     (-> context
         (assoc-in (cons :root-ast path) ast))))
 
+#_
 (defn xxx-pass
   [context]
   (-> context
