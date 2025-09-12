@@ -106,10 +106,32 @@
           ;; Idea: write some unit tests for the for-fragment macro
           ,))))
 
+(defn dynamic-fragment-crash-test []
+  ($ :article
+     ($ :h2 "Dynamic fragments composition (crash test)")
+     (vw/for-fragment* (range 2)
+        (fn [index1]
+          (vw/for-fragment* (range 2)
+             (fn [index2]
+               (let [just-started (sr/create-state true)
+                     is-even (sr/create-state true)]
+                 (vw/if-fragment just-started
+                   ($ :div ($ :button {:on/click #(reset! just-started false)} "Start"))
+                   (vw/if-fragment is-even
+                     ($ :div
+                        (str index1 " " index2 " ")
+                        "The value is even."
+                        ($ :button {:on/click #(reset! is-even false)} "Make it odd."))
+                     ($ :div
+                        (str index1 " " index2 " ")
+                        "The value is odd."
+                        ($ :button {:on/click #(reset! is-even true)} "Make it even.")))))))))))
+
 (defn reactive-fragment-root []
   ($ :div
      ($ if-fragment-article)
      ($ case-fragment-article)
      ($ cond-fragment-article)
      ($ for-fragment-article)
+     ($ dynamic-fragment-crash-test)
      ,))

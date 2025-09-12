@@ -249,10 +249,26 @@
                              (reset! old-props props)))))))
 
 #?(:cljs
+   (defn- collect-dom-nodes! [^js/Array array x]
+     (cond
+       (instance? js/Node x)
+       (.push array x)
+
+       (vector? x)
+       (doseq [item x]
+         (collect-dom-nodes! array item))
+
+       (reactive-fragment? x)
+       (doseq [item @(:reactive-node x)]
+         (collect-dom-nodes! array item)))))
+
+
+#?(:cljs
    (defn dynamic-children-effect
      "Dynamically update the DOM node so that its children keep representing the elements array.
-      The elements are either js/Element or a reactive node whose value is a sequence of js/Element."
-     [^js/Element parent-element elements]
+      The elements are either js/Node (element or text node) or a reactive node whose value is
+      a vector of js/Node instances."
+     [^js/Element parent-element nodes]
      ;; TODO: This algorithm could be improved to only replace children where it is needed.
      ;;       Would it be faster? less CPU-intensive?
      ;;       maybe different algorithms depending on the size?
@@ -263,11 +279,7 @@
                            (binding [*xmlns-kw* xmlns-kw
                                      *userland-context* userland-context]
                              (let [new-children (make-array 0)]
-                               (doseq [element elements]
-                                 (if (reactive-fragment? element)
-                                   (doseq [sub-element @(:reactive-node element)]
-                                     (.push new-children sub-element))
-                                   (.push new-children element)))
+                               (collect-dom-nodes! new-children nodes)
                                (-> parent-element .-replaceChildren (.apply parent-element new-children)))))))))
 
 ;; ----------------------------------------------
