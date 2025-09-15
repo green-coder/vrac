@@ -6,7 +6,7 @@
     "release": "npx shadow-cljs release :app"
   },
   "devDependencies": {
-    "shadow-cljs": "^2.28.21"
+    "shadow-cljs": "3.2.0"
   },
   "dependencies": {
     "react": "^19.0.0",

@@ -7,6 +7,6 @@
     "server": "npx shadow-cljs server"
   },
   "devDependencies": {
-    "shadow-cljs": "^2.28.21"
+    "shadow-cljs": "3.2.0"
   }
 }

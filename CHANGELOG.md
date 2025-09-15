@@ -19,6 +19,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 - Documentation about the attributes are properties in Vcup.
 
+### Fixed
+
+- Fixed a bug which prevented reactive fragments (e.g. if, for) to be used directly inside each other.
+
 ## [0.1.0] - 2025-03-17
 
 ### Added
