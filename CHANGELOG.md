@@ -6,7 +6,16 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [0.1.2] - 2025-10-04
 
+### Fixed
+
+- Cljdoc documentation is fixed.
+- Fixed a bug which prevented reactive fragments (e.g. if, for) to be used directly inside each other.
+
+### Changed
+
+- Bumped the dependencies on the example projects, notably Shadow-CLJS.
 
 ## [0.1.1] - 2025-04-24
 
@@ -17,11 +26,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Added
 
-- Documentation about the attributes are properties in Vcup.
-
-### Fixed
-
-- Fixed a bug which prevented reactive fragments (e.g. if, for) to be used directly inside each other.
+- Documentation about the attributes and properties in Vcup.
 
 ## [0.1.0] - 2025-03-17
 

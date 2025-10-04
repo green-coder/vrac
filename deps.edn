@@ -23,9 +23,9 @@
            :jar  {:replace-deps {com.github.seancorfield/depstar {:mvn/version "2.1.303"}}
                   :exec-fn      hf.depstar/jar
                   :exec-args    {:sync-pom    true
-                                 :group-id    "fi.metosin"
+                                 :group-id    "taipei.404.vrac"
                                  :artifact-id "vrac"
-                                 :version     "0.1.1"
+                                 :version     "0.1.2"
                                  :jar         "vrac.jar"}}
 
            :deploy {:extra-deps {slipset/deps-deploy {:mvn/version "0.2.2"}}

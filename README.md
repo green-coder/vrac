@@ -1,8 +1,8 @@
 # Vrac
 
-[![Clojars Project](https://img.shields.io/clojars/v/fi.metosin/vrac.svg)](https://clojars.org/fi.metosin/vrac)
+[![Clojars Project](https://img.shields.io/clojars/v/taipei.404.vrac/vrac.svg)](https://clojars.org/taipei.404.vrac/vrac)
 [![Slack](https://img.shields.io/badge/slack-vrac-orange.svg?logo=slack)](https://clojurians.slack.com/app_redirect?channel=vrac)
-[![cljdoc badge](https://cljdoc.org/badge/fi.metosin/vrac)](https://cljdoc.org/d/fi.metosin/vrac)
+[![cljdoc badge](https://cljdoc.org/badge/taipei.404.vrac/vrac)](https://cljdoc.org/d/taipei.404.vrac/vrac)
 
 > The only way to stop using JS is to stop using JS.
 
@@ -25,9 +25,9 @@ Features on the roadmap:
 
 ## Project status
 
-This project is currently [experimental](https://github.com/metosin/open-source/blob/main/project-status.md#experimental).
+This project is currently in its early development.
 
-It is implemented enough to be useful, but not ready for production yet.
+It doesn't have known bugs, is implemented enough to be useful, but not ready for production yet.
 
 ## License
 

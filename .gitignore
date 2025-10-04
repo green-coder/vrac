@@ -8,5 +8,6 @@ out/
 .nrepl-port
 .shadow-cljs/
 .cljs_node_repl/
+.clj-kondo/
 
 *.iml

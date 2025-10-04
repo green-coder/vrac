@@ -4,7 +4,7 @@
            org.clojure/clojurescript {:mvn/version "1.12.42"}
            thheller/shadow-cljs      {:mvn/version "3.2.1"}
            metosin/reitit-frontend   {:mvn/version "0.9.1"}
-           fi.metosin/vrac           {:local/root "../.."}
+           taipei.404.vrac/vrac      {:local/root "../.."}
            fi.metosin/si-frame       {:mvn/version "1.4.3.0-no-siagent"}}
 
 
