@@ -89,9 +89,14 @@
 (defn- svg-element-with-class-and-style []
    ($ :article
       ($ :h2 "SVG element with a class and style")
-      ($ :svg {:xmlns "http://www.w3.org/2000/svg"
-               :class "my-class"
-               :style {:color "green"}})))
+      ($ :div
+         ($ :svg {:xmlns "http://www.w3.org/2000/svg"
+                  :class "my-class"
+                  :style {:color "lightgreen"}}
+            ($ :circle {:cx 50
+                        :cy 50
+                        :r  50
+                        :fill "currentColor"})))))
 
 (defn- foreign-object-inside-svg []
    ($ :article
