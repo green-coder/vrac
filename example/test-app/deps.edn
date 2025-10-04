@@ -1,8 +1,8 @@
 {:paths   ["src" "resource"]
 
- :deps    {org.clojure/clojure       {:mvn/version "1.12.2"}
+ :deps    {org.clojure/clojure       {:mvn/version "1.12.3"}
            org.clojure/clojurescript {:mvn/version "1.12.42"}
-           thheller/shadow-cljs      {:mvn/version "3.2.0"}
+           thheller/shadow-cljs      {:mvn/version "3.2.1"}
            fi.metosin/vrac           {:local/root "../.."}}
 
  :aliases {;; clojure -M:outdated --upgrade

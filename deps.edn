@@ -4,14 +4,14 @@
            taipei.404/mate     {:git/url "https://github.com/green-coder/mate.git"
                                 :git/sha "e553bf33e6b6aef556d6713f9b0db4d13df33345"}}
 
- :aliases {:dev {:extra-deps {org.clojure/clojure       {:mvn/version "1.12.2"}
+ :aliases {:dev {:extra-deps {org.clojure/clojure       {:mvn/version "1.12.3"}
                               org.clojure/clojurescript {:mvn/version "1.12.42"}
                               djblue/portal             {:mvn/version "0.61.0"}
                               lambdaisland/deep-diff2   {:mvn/version "2.12.219"}}}
 
            :test     {:extra-paths ["test" "test-resource"]
                       :extra-deps  {lambdaisland/kaocha           {:mvn/version "1.91.1392"}
-                                    lambdaisland/kaocha-cljs      {:mvn/version "1.5.154"}
+                                    lambdaisland/kaocha-cljs      {:mvn/version "1.8.163"}
                                     lambdaisland/kaocha-junit-xml {:mvn/version "1.17.101"}
                                     org.clojure/test.check        {:mvn/version "1.1.1"}
                                     org.clojure/data.json         {:mvn/version "2.5.1"}}}
