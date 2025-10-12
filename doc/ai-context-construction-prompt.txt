@@ -1,0 +1,6 @@
+Ultrathink: Read @src/vrac/web.cljc, @doc/vcup-properties.md, the files in directory @example/test-app/src/example/ and the @example/si-frame-simple/src/simple/core.cljs.
+From the patterns of how Vrac is used in those correct programs, I want you to write a summary of those patterns in
+@doc/ai-context.md which will be used by Claude Code for generating Clojurescript programs using Vrac, Si-Frame and Signaali.
+The information should not be application-specific. Only include the information which is really needed for generating a correct program,
+and avoid repeating yourself.
+Latest version of Vrac to use in file deps.edn is `taipei.404.vrac/vrac {:mvn/version "0.1.2"}`

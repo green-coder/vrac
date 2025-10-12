@@ -13,7 +13,8 @@ Features implemented so far:
 - Uses signals to do efficient fine-grained updates on the DOM
 - Has a good interop with React and Clojurescript React wrappers
 - 100% compatible with Re-frame via the fork [Si-frame](https://github.com/metosin/si-frame)
-- Has [concise and simple examples](/example) showing how to use it
+- Has [concise and simple examples](example) showing how to use it
+- Carefully crafted [AI context for LLMs and AI agents](doc/ai-context.md).
 
 Features on the roadmap:
 - Declarative developer experience via a DSL
@@ -27,7 +28,8 @@ Features on the roadmap:
 
 This project is currently in its early development.
 
-It doesn't have known bugs, is implemented enough to be useful, but not ready for production yet.
+It doesn't have known bugs, is implemented enough to be useful to small projects
+but might not have enough built-in features to be used in large projects by large teams.
 
 ## License
 
