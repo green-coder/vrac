@@ -23,9 +23,9 @@ taipei.404.vrac/vrac {:mvn/version "0.1.2"}
 
 ### Static Props
 ```clojure
-($ :div {:style {:color "red" :padding "1em"}
-         :class [:class1 :class2]
-         :data-testid "my-div"}
+($ :div.class1 {:style {:color "red" :padding "1em"}
+                :class [:class2]
+                :data-testid "my-div"}
    "content")
 ```
 
@@ -71,6 +71,8 @@ Props compose together; later values override earlier ones (except `:style` and 
 
 ## Reactive Fragments
 
+Don't use reactive fragment on static data
+
 ### Conditional Rendering
 ```clojure
 ;; If/else
@@ -109,7 +111,7 @@ Props compose together; later values override earlier ones (except `:style` and 
 ```clojure
 (vw/for-fragment*
   coll-fn          ; (fn [] @items) or just items-signal
-  key-fn           ; :id or (fn [item] (:id item))
+  key-fn           ; :id or (fn [item] (:id item)), optional
   item-component)  ; (fn [item] ($ :div (:name item)))
 ```
 
